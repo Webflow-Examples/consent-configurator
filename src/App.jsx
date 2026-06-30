@@ -59,19 +59,19 @@ const CMPS = {
       "Webflow's recommended pattern uses OneTrust.OnConsentChanged and reads OnetrustActiveGroups. Group IDs (commonly C0004 Targeting, C0002 Performance) are configured per tenant – confirm the mapping in the OneTrust admin.",
     knownIssue: {
       text:
-        "On opt-in (OneTrust geolocation) rules the recurring failure is load order: Optimize fires before OneTrust has resolved consent, so the first pageview is either lost or counted before the visitor agrees. Deny by default and only allow inside OptanonWrapper once the mapped group is active.",
+        "On opt-in (OneTrust geolocation) rules the recurring failure is load order: Optimize fires before OneTrust has resolved consent, so the first pageview is either lost or counted before the visitor agrees. Deny by default and only allow once the mapped group is active, reacting through OneTrust.OnConsentChanged as the snippet does.",
     },
   },
   cookiebot: {
     name: "Cookiebot",
-    gotcha: "Watch for: a later posture change showing up as an Analyze and GA4 gap. That is expected, not a bug.",
+    gotcha: "Watch for: gating on the wrong category, which silently tracks the wrong visitors. Confirm the category matches where Optimize sits.",
     detect: "window.Cookiebot is present.",
     cat: { marketing: "marketing", analytics: "statistics", functional: "preferences" },
     catNote:
       "Reads Cookiebot.consent booleans (marketing, statistics, preferences) on the CookiebotOnAccept, OnDecline, and OnLoad events – the pattern Webflow documents for Cookiebot.",
     knownIssue: {
       text:
-        "Changing the consent posture (default categories, or moving to prior-consent) changes what gets tracked, which shows up later as an Analyze vs GA4 discrepancy. That is expected behavior, not a bug. Gate the bridge on the category you actually intend, and expect the number to move when posture changes.",
+        "The real failure is gating on the wrong category. The bridge reads Cookiebot.consent.statistics (analytics) or .marketing (targeting), so picking the category that does not match where Optimize sits silently tracks the wrong visitors. Confirm the category in the Cookiebot admin. Separately, and expected rather than a bug: any posture change moves what gets tracked, so the Analyze number will differ from GA4 and shift when the posture changes.",
     },
   },
   trustarc: {
@@ -107,7 +107,7 @@ const CMPS = {
       "Reads getCkyConsent().categories on banner load and detail.accepted on consent update. If 'Reload page on consent action' is enabled in CookieYes it can strip the referrer – consider turning it off.",
     knownIssue: {
       text:
-        "A standard CookieYes setup works once two things are true: the Optimize script is not sitting in a category CookieYes auto-blocks, and the bridge grants before Optimize needs to run in opt-in mode. Verify both on the live page rather than assuming the default placement is safe.",
+        "The recurring failure is CookieYes auto-blocking the Optimize script by category before any consent logic runs, so Optimize never loads and there is no obvious error. Confirm Optimize is not sitting in an auto-blocked category, then that the bridge grants once the mapped category is accepted. Check both on the live page rather than assuming the default placement is safe.",
     },
   },
   usercentrics: {
@@ -542,14 +542,14 @@ const BOOKMARKLET_SOURCE = `(function () {
   function fmtList(a) { if (a.length <= 1) return a.join(''); return a.slice(0, -1).join(', ') + ' and ' + a[a.length - 1]; }
 
   var WATCH = {
-    'OneTrust': 'Optimize can fire before OneTrust resolves consent. The deny-by-default in the snippet handles it, so the first bridge call should be a deny, then an allow after you accept.',
-    'Cookiebot': 'A later posture change shows up as an Analyze and GA4 gap. That is expected, not a bug. Confirm the bridge gates on the category you intend.',
-    'TrustArc': 'Auto Blocker can block Optimize before any consent logic runs. The fix is the reclassification included with the snippet. Confirm Optimize is present, then that the bridge reacts.',
-    'Osano': 'Osano can save consent after Optimize starts, a race on the first pageview. Reading consent on load fixes it. Confirm a returning visitor is handled correctly.',
-    'CookieYes': 'Make sure Optimize is not sitting in a category CookieYes auto-blocks, and that the bridge grants before Optimize runs in opt-in mode.',
-    'Usercentrics': 'Usercentrics now owns Cookiebot and the two use different APIs. Confirm the integration reacts through the Usercentrics service, not the Cookiebot events.',
-    'Ketch': 'A common Ketch setup shows the banner but never passes the decision to Optimize, so tracking continues after a Deny. Confirm the bridge logs a deny when you decline.',
-    'Didomi': 'Didomi purpose and vendor IDs are configured per notice, so the wrong ID silently allows or denies everything. Confirm the bridge reacts to the configured Optimize purpose.',
+    'OneTrust': 'Optimize can fire before OneTrust resolves consent. The deny-by-default in the snippet handles it. Note: this panel loads after the page, so it cannot see the first-pageview ordering, only that the bridge reacts when you change consent now. To test the category mapping, accept only the mapped group rather than accept-all, and confirm the bridge logs an allow.',
+    'Cookiebot': 'Confirm the bridge gates on the category you intend: accept only that category in the banner and watch for an allow, then a different category and confirm no allow. A later posture change showing up as an Analyze and GA4 gap is expected, not a bug.',
+    'TrustArc': 'Auto Blocker can block Optimize before any consent logic runs. The fix is the reclassification included with the snippet. Confirm the Optimize snippet row reads present, then that the bridge reacts when you change consent.',
+    'Osano': 'Osano can save consent after Optimize starts, a race on the first pageview. This panel loads after the page, so it cannot see that first-pageview ordering. Reload the page and re-run this to confirm a returning visitor is read correctly.',
+    'CookieYes': 'CookieYes can auto-block the Optimize script by category before any consent logic runs. Confirm the Optimize snippet row reads present, then that the bridge grants once the mapped category is accepted.',
+    'Usercentrics': 'Usercentrics now owns Cookiebot and the two use different APIs. Confirm the integration reacts through the Usercentrics service, not the Cookiebot events: a banner click should log a (page) bridge call.',
+    'Ketch': 'A common Ketch setup shows the banner but never passes the decision to Optimize, so tracking continues after a Deny. Confirm the bridge logs a deny when you decline in the real banner.',
+    'Didomi': 'Didomi purpose and vendor IDs are configured per notice, so the wrong ID silently allows or denies everything. This panel sees allow or deny but not which purpose drove it, so accept-all can read as a false pass. Accept only the mapped Optimize purpose and confirm the bridge logs an allow.',
     'DataGrail': 'DataGrail manages Optimize tracking directly through GTM, so there is no manual bridge. Confirm the Webflow tracking row flips when you accept or decline, and that no hand-rolled bridge is also present.',
     'Finsweet Consent Pro': 'Consent Pro manages Optimize tracking directly, so there is no manual bridge. Confirm the Webflow tracking row flips when you accept or decline, and that no hand-rolled bridge is also present.'
   };
