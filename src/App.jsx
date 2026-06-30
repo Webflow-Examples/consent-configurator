@@ -1579,7 +1579,7 @@ function GuidedFlow({ initial }) {
             <h4>Which category gates tracking?</h4>
             <p className="teach">Most consent platforms group cookies into categories, and a visitor consents per category. This sets which one turns Webflow tracking on. The two options are the buckets it normally falls under, though the exact name varies by platform, so match the choice to how it is set up on the consent platform. Some platforms also have a Functional or Preferences category; tracking is rarely placed there, but if it is, point the category value in the snippet at that group.</p>
             <OptionList options={CATEGORY_OPTS} value={category} onChange={function (v) { setCategory(v); }} />
-            <p className="muted small tell">This choice has compliance implications, so confirm it against your privacy policy.</p>
+            <p className="category-note">This choice has compliance implications — confirm it against your privacy policy before shipping.</p>
           </div>
           <AdvancedOptions activate={activate} setActivate={setActivate} reload={reload} setReload={setReload} />
           <h3 className="result-head">Your setup</h3>
@@ -1921,7 +1921,7 @@ p { margin:0; line-height:1.6; color:var(--text-muted); }
 .pill svg { color:var(--blue); }
 
 .tabs { display:grid; grid-template-columns:repeat(3,1fr); gap:12px; margin-bottom:40px; }
-.detected-banner { display:flex; align-items:flex-start; gap:12px; background:var(--surface); border:1px solid var(--blue); border-radius:10px; padding:14px 16px; margin-bottom:24px; }
+.detected-banner { display:flex; align-items:flex-start; gap:12px; background:var(--surface); border:1px solid var(--border); border-left:3px solid var(--blue); border-radius:8px; padding:14px 16px; margin-bottom:24px; }
 .detected-banner .db-body { flex:1; font-size:0.875rem; }
 .detected-banner .db-title { font-weight:600; color:var(--text); margin-bottom:3px; }
 .detected-banner .db-sub { color:var(--muted); }
@@ -1938,12 +1938,13 @@ p { margin:0; line-height:1.6; color:var(--text-muted); }
 .card { background:var(--surface); border:1px solid var(--border); border-radius:8px; padding:22px; margin-bottom:32px; }
 .card.subtle { background:transparent; }
 .block { margin-bottom:36px; }
-.block h4 { font-size:1.25rem; margin-bottom:12px; }
+.block h4 { font-size:1.25rem; margin-bottom:16px; }
 .block > .muted { margin-bottom:14px; }
 .stack > .block { margin-bottom:0; }
 .card h4 { font-size:1.25rem; margin-bottom:12px; }
 .card > .muted { margin-bottom:14px; }
 .step-help { margin-bottom:16px; }
+.category-note { margin-top:16px; padding:10px 14px; border-left:2px solid var(--border-2); font-size:0.8125rem; color:var(--muted); line-height:1.5; }
 
 .muted { color:var(--muted); }
 .small { font-size:0.875rem; }
@@ -1987,7 +1988,7 @@ p { margin:0; line-height:1.6; color:var(--text-muted); }
 
 .nav { display:flex; justify-content:space-between; align-items:center; margin-top:32px; }
 
-.steps { display:flex; gap:8px; margin-bottom:28px; flex-wrap:wrap; }
+.steps { display:flex; gap:8px; margin-bottom:20px; flex-wrap:wrap; }
 .step-dot { display:flex; align-items:center; gap:8px; padding:7px 12px; border:1px solid var(--border); border-radius:999px; font-size:0.8125rem; color:var(--muted); }
 .step-dot .step-num { width:18px; height:18px; border-radius:999px; background:var(--surface2); display:inline-flex; align-items:center; justify-content:center; font-weight:600; font-size:0.75rem; }
 .step-dot.active { border-color:var(--blue); color:var(--text); }
@@ -2023,12 +2024,12 @@ p { margin:0; line-height:1.6; color:var(--text-muted); }
 .next-steps + .muted { margin-top:14px; }
 .rules { border:1px solid var(--border-2); border-radius:10px; padding:18px 20px; margin-bottom:36px; }
 .rules-head { display:flex; align-items:center; gap:8px; font-weight:600; font-size:1.05rem; }
-.rules-head svg { color:var(--text-dim); flex:none; }
+.rules-head svg { color:var(--muted); flex:none; }
 .rules .lead { margin:12px 0; line-height:1.6; }
 .rules ul.donts { list-style:none; margin:0; padding:0; }
 .rules ul.donts li { display:flex; align-items:baseline; gap:10px; padding:9px 0; line-height:1.55; border-top:1px solid var(--border); }
 .rules ul.donts li:first-child { border-top:none; }
-.rules ul.donts li::before { content:"×"; flex:none; color:var(--text-dim); font-weight:500; font-size:1.1em; }
+.rules ul.donts li::before { content:"×"; flex:none; color:var(--muted); font-weight:500; font-size:1.1em; }
 .rules code { font-family:'JetBrains Mono',monospace; font-size:0.85em; background:var(--code-bg); border:1px solid var(--border); border-radius:4px; padding:1px 5px; }
 .rules .doclist { margin-top:14px; }
 
