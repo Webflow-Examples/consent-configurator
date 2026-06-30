@@ -968,12 +968,12 @@ function LoadOrder({ posture, activate = true, reload = false }) {
 
   // What happens after consent is granted, explicit about page view, reload, and activation
   function afterGrant() {
-    if (!activate) return ["Consent stored, not yet active", "Your site triggers activation", "Tracking runs"];
+    if (!activate) return ["Consent stored, not yet active", "Tracking runs on next page view"];
     if (reload) return ["Page reloads", "Tracking runs on the reloaded view"];
     return ["Tracking runs on this page view"];
   }
   // A returning visitor is not a consent change, so reload never fires for them
-  const restoredTail = activate ? ["Tracking runs on this page view"] : ["Consent stored, not yet active", "Your site triggers activation", "Tracking runs"];
+  const restoredTail = activate ? ["Tracking runs on this page view"] : ["Consent stored, not yet active", "Tracking runs on next page view"];
 
   const scenarios = denyFirst
     ? [
@@ -993,7 +993,7 @@ function LoadOrder({ posture, activate = true, reload = false }) {
     ? (reload
         ? "Reload is on, so a consent change refreshes the page. Tracking begins on the reloaded view, and for Optimize variations apply cleanly from the top of that fresh page instead of changing in place."
         : "Tracking begins on the same page view, the moment consent resolves, and no page reload happens. For Optimize, variations apply on that same view right after the visitor accepts, so the page can change in place.")
-    : ("Activate is off, so allowUserTracking records the consent but does not start tracking on its own. Your site triggers activation in its own code, at a point it chooses, for example after a separate in-app step. Once that runs, tracking begins on whatever page view the call happens on." + (reload ? " Reload is on, so a consent change also refreshes the page." : " No page reload happens."));
+    : ("Activate is off, so allowUserTracking records the consent but does not start Optimize on this page. On the next page view, Webflow reads the stored consent and Optimize starts normally. Use this when you want Optimize to apply from the top of a clean page rather than injecting mid-page after the consent choice." + (reload ? " Reload is on, so a consent change also refreshes the page." : ""));
 
   const [active, setActive] = useState(0);
   const sc = scenarios[active] || scenarios[0];
