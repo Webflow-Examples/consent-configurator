@@ -1839,7 +1839,7 @@ export default function App() {
 
         <footer className="foot">
           <span>This configurator generates best-practice integration code, not legal advice. Confirm your consent posture with your privacy team.</span>
-          <span style={{ display: "block", marginTop: "8px", opacity: 0.7 }}>Generated code is provided under the {LICENSE.spdx} License (Copyright (c) {LICENSE.year} {LICENSE.holder}). <a href={LICENSE.repo} target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>Webflow-Examples</a></span>
+          <span style={{ display: "block", marginTop: "8px", opacity: 0.7 }}>Generated code is MIT-licensed. <a href={LICENSE.repo} target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>View source on GitHub</a></span>
         </footer>
       </main>
       {showTour && TUTORIAL_URL ? (
