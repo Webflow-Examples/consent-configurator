@@ -6,7 +6,7 @@ The tool runs entirely in the browser as one self-contained HTML file. It has th
 
 ## Live tool
 
-https://grapes.wfsa.io/consent-configurator/ (update to the deployed URL)
+https://grapes.wfsa.io/consent-configurator/
 
 ## Build
 
