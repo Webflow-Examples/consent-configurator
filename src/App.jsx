@@ -1974,7 +1974,7 @@ p { margin:0; line-height:1.6; color:var(--text-muted); }
 .acctid-input:focus { outline:none; border-color:var(--blue); box-shadow:inset 0 0 0 1px var(--blue); }
 .acctid-help { margin:8px 0 0; }
 
-.btn { display:inline-flex; align-items:center; gap:7px; border-radius:8px; padding:10px 16px; font:600 0.875rem var(--font-b); cursor:pointer; border:1px solid transparent; transition:all .12s ease; }
+.btn { display:inline-flex; align-items:center; gap:7px; border-radius:8px; padding:10px 16px; font:600 0.875rem var(--font-b); cursor:pointer; border:1px solid transparent; text-decoration:none; transition:all .12s ease; }
 .btn.primary { background:var(--blue); color:#fff; }
 .btn.primary:hover { background:#0b59cc; }
 .btn.primary:disabled { background:var(--g700); color:var(--g400); cursor:not-allowed; }
@@ -2023,12 +2023,12 @@ p { margin:0; line-height:1.6; color:var(--text-muted); }
 .next-steps + .muted { margin-top:14px; }
 .rules { border:1px solid var(--border-2); border-radius:10px; padding:18px 20px; margin-bottom:36px; }
 .rules-head { display:flex; align-items:center; gap:8px; font-weight:600; font-size:1.05rem; }
-.rules-head svg { color:var(--blue); flex:none; }
+.rules-head svg { color:var(--text-dim); flex:none; }
 .rules .lead { margin:12px 0; line-height:1.6; }
 .rules ul.donts { list-style:none; margin:0; padding:0; }
-.rules ul.donts li { position:relative; padding:9px 0 9px 28px; line-height:1.55; border-top:1px solid var(--border); }
+.rules ul.donts li { display:flex; align-items:baseline; gap:10px; padding:9px 0; line-height:1.55; border-top:1px solid var(--border); }
 .rules ul.donts li:first-child { border-top:none; }
-.rules ul.donts li::before { content:"×"; position:absolute; left:5px; top:8px; color:var(--blue); font-weight:700; font-size:1.1em; line-height:1.2; }
+.rules ul.donts li::before { content:"×"; flex:none; color:var(--text-dim); font-weight:500; font-size:1.1em; }
 .rules code { font-family:'JetBrains Mono',monospace; font-size:0.85em; background:var(--code-bg); border:1px solid var(--border); border-radius:4px; padding:1px 5px; }
 .rules .doclist { margin-top:14px; }
 
