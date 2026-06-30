@@ -34,3 +34,7 @@ Every snippet the tool outputs carries an MIT license header, so the code a site
 ## Accuracy
 
 The per-CMP patterns reflect vendor behavior verified as of June 2026. Event names and category IDs vary by platform version and configuration, so confirm against current vendor documentation before relying on a generated snippet in production. This tool generates best-practice integration code, not legal advice; the privacy and legal teams own the consent posture and category mapping for each jurisdiction.
+
+## Maintenance
+
+The per-CMP knowledge (reference docs, category mappings, known failure modes, and the code generated per platform) needs periodic re-verification against current vendor APIs. See [`MAINTENANCE.md`](MAINTENANCE.md) for the model and the manual steps, or run the `refresh-cmp-docs` Claude Code skill (`.claude/skills/refresh-cmp-docs/`) to walk through a refresh end to end, including a live Verify-mode check per platform.
