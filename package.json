@@ -1,0 +1,16 @@
+{
+  "name": "consent-configurator",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Generate and verify a consent integration between a CMP and Webflow tracking (Optimize and Analyze).",
+  "license": "MIT",
+  "type": "module",
+  "scripts": {
+    "build": "node build.mjs"
+  },
+  "devDependencies": {
+    "esbuild": "^0.21.5",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1"
+  }
+}
