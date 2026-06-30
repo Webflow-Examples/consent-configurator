@@ -1616,28 +1616,37 @@ function ExpressMode() {
   const [reload, setReload] = useState(false);
   const [activate, setActivate] = useState(true);
   const special = CMPS[cmpKey].native || CMPS[cmpKey].generic;
+  const platformRef = useRef(null);
+  const postureRef = useRef(null);
+  const hostingRef = useRef(null);
+  const categoryRef = useRef(null);
+  function handleEdit(target) {
+    var refs = { 0: postureRef, 1: platformRef, 2: hostingRef, category: categoryRef };
+    var ref = refs[target];
+    if (ref && ref.current) ref.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+  }
 
   return (
     <div>
       <div className="grid2">
-        <div className="block">
+        <div className="block" ref={platformRef}>
           <h4>Consent platform</h4>
           <CmpPicker value={cmpKey} onChange={setCmpKey} />
         </div>
         <div className="stack">
-          <div className="block">
+          <div className="block" ref={postureRef}>
             <h4>Consent model</h4>
             <OptionList options={POSTURE_OPTS} value={posture} onChange={setPosture} />
           </div>
           {!special ? (
-            <div className="block">
+            <div className="block" ref={hostingRef}>
               <h4>Install</h4>
               <OptionList options={HOSTING_OPTS} value={hosting} onChange={setHosting} />
               {hosting === "nonhosted" ? <AccountIdField value={accountId} onChange={setAccountId} /> : null}
             </div>
           ) : null}
           {!special ? (
-            <div className="block">
+            <div className="block" ref={categoryRef}>
               <h4>Gate on</h4>
               <OptionList options={CATEGORY_OPTS} value={category} onChange={setCategory} />
             </div>
@@ -1647,7 +1656,7 @@ function ExpressMode() {
           ) : null}
         </div>
       </div>
-      <Output cmpKey={cmpKey} posture={posture} hosting={hosting} category={category} accountId={accountId} reload={reload} activate={activate} />
+      <Output cmpKey={cmpKey} posture={posture} hosting={hosting} category={category} accountId={accountId} reload={reload} activate={activate} onEditStep={handleEdit} />
     </div>
   );
 }
