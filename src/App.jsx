@@ -968,6 +968,7 @@ function LoadOrder({ posture, activate = true, reload = false }) {
 
   // What happens after consent is granted, explicit about page view, reload, and activation
   function afterGrant() {
+    if (!activate && reload) return ["Consent stored, not yet active", "Page reloads", "Tracking runs on the reloaded view"];
     if (!activate) return ["Consent stored, not yet active", "Tracking runs on next page view"];
     if (reload) return ["Page reloads", "Tracking runs on the reloaded view"];
     return ["Tracking runs on this page view"];
