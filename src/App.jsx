@@ -563,7 +563,8 @@ const BOOKMARKLET_SOURCE = `(function () {
     else if (window.ketch || window.semaphore) cmp = 'Ketch';
     else if (window.Didomi) cmp = 'Didomi';
     else if (window.getCkyConsent || document.cookie.indexOf('cookieyes-consent') !== -1) cmp = 'CookieYes';
-    var by = [['onetrust', 'OneTrust'], ['cookielaw', 'OneTrust'], ['cookiebot', 'Cookiebot'], ['usercentrics', 'Usercentrics'], ['trustarc', 'TrustArc'], ['osano', 'Osano'], ['ketch', 'Ketch'], ['didomi', 'Didomi'], ['cookieyes', 'CookieYes'], ['clarip', 'Clarip'], ['cookieinformation', 'Cookie Information'], ['cookiecontrol', 'Civic Cookie Control'], ['termly', 'Termly'], ['iubenda', 'iubenda'], ['quantcast', 'Quantcast'], ['sourcepoint', 'Sourcepoint'], ['cassie', 'Cassie'], ['datagrail', 'DataGrail'], ['finsweet', 'Finsweet Consent Pro'], ['fs-cc', 'Finsweet Consent Pro']];
+    else if (document.querySelector('script[finsweet="consentpro"], [fs-cc]') || document.cookie.indexOf('fs-cc') !== -1) cmp = 'Finsweet Consent Pro';
+    var by = [['onetrust', 'OneTrust'], ['cookielaw', 'OneTrust'], ['cookiebot', 'Cookiebot'], ['usercentrics', 'Usercentrics'], ['trustarc', 'TrustArc'], ['osano', 'Osano'], ['ketch', 'Ketch'], ['didomi', 'Didomi'], ['cookieyes', 'CookieYes'], ['clarip', 'Clarip'], ['cookieinformation', 'Cookie Information'], ['cookiecontrol', 'Civic Cookie Control'], ['termly', 'Termly'], ['iubenda', 'iubenda'], ['quantcast', 'Quantcast'], ['sourcepoint', 'Sourcepoint'], ['cassie', 'Cassie'], ['datagrail', 'DataGrail'], ['consentpro', 'Finsweet Consent Pro'], ['finsweet', 'Finsweet Consent Pro'], ['fs-cc', 'Finsweet Consent Pro']];
     var known = [];
     for (var n = 0; n < by.length; n++) { if (known.indexOf(by[n][1]) === -1) known.push(by[n][1]); }
     if (cmp === 'None recognized') {
