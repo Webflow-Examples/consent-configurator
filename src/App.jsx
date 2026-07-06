@@ -1578,7 +1578,7 @@ function GuidedFlow({ initial }) {
         <div>
           <div className="block" ref={categoryRef}>
             <h4>Which category gates tracking?</h4>
-            <p className="teach">Most consent platforms group cookies into categories, and a visitor consents per category. This sets which one turns Webflow tracking on. The two options are the buckets it normally falls under, though the exact name varies by platform, so match the choice to how it is set up on the consent platform. Some platforms also have a Functional or Preferences category; tracking is rarely placed there, but if it is, point the category value in the snippet at that group.</p>
+            <p className="teach">Most consent platforms group cookies into categories, and a visitor consents per category. This sets which one turns Webflow tracking on. Marketing and Analytics are the two buckets tracking normally falls under, though the exact name varies by platform, so match the choice to how it is set up on the consent platform. Functional/Preferences is less common for tracking, but pick it if that is where the platform puts it.</p>
             <OptionList options={CATEGORY_OPTS} value={category} onChange={function (v) { setCategory(v); }} />
             <p className="category-note">This choice has compliance implications — confirm it against your privacy policy before shipping.</p>
           </div>
@@ -1688,7 +1688,7 @@ function VerifyMode() {
               <CopyButton text={href} label="Copy bookmarklet" />
             </div>
           </li>
-          <li><span className="bm-step-t">Open the live page.</span> The page where the consent platform and Webflow tracking are set up.</li>
+          <li><span className="bm-step-t">Open the live page.</span> The page where the consent platform and Webflow tracking are set up. Use a private/incognito window if you already interacted with the banner before – a fresh session shows the first-pageview behavior, not a returning visitor's saved consent.</li>
           <li><span className="bm-step-t">Click the bookmark.</span> A live panel opens with the readout, Allow and Deny buttons, and a log of consent calls. It updates as you interact with the banner, but it does not survive a page reload – run it again after one.</li>
         </ol>
         <p className="muted small">This works in a desktop browser. It reads the page and reports what it finds; it sends nothing and changes nothing.</p>
