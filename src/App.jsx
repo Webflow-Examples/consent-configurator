@@ -52,91 +52,83 @@ const CMP_DOCS = {
 const CMPS = {
   onetrust: {
     name: "OneTrust",
-    gotcha: "Watch for: Optimize firing before OneTrust resolves consent. The deny-by-default in the snippet handles it.",
     detect: "window.OneTrust or window.Optanon is present and OptanonWrapper() is defined.",
     cat: { marketing: "C0004", analytics: "C0002", functional: "C0003" },
     catNote:
       "Webflow's recommended pattern uses OneTrust.OnConsentChanged and reads OnetrustActiveGroups. Group IDs (commonly C0004 Targeting, C0002 Performance) are configured per tenant – confirm the mapping in the OneTrust admin.",
     knownIssue: {
       text:
-        "On opt-in (OneTrust geolocation) rules the recurring failure is load order: Optimize fires before OneTrust has resolved consent, so the first pageview is either lost or counted before the visitor agrees. Deny by default and only allow once the mapped group is active, reacting through OneTrust.OnConsentChanged as the snippet does.",
+        "Because OneTrust resolves consent asynchronously, Optimize can initialize before that resolution completes, so the first pageview may be counted or lost before the visitor's choice is known. The snippet denies by default and only allows once the mapped group is active, reacting through OneTrust.OnConsentChanged – verify this ordering with Verify mode rather than assuming it.",
     },
   },
   cookiebot: {
     name: "Cookiebot",
-    gotcha: "Watch for: gating on the wrong category, which silently tracks the wrong visitors. Confirm the category matches where Optimize sits.",
     detect: "window.Cookiebot is present.",
     cat: { marketing: "marketing", analytics: "statistics", functional: "preferences" },
     catNote:
       "Reads Cookiebot.consent booleans (marketing, statistics, preferences) on the CookiebotOnAccept, OnDecline, and OnLoad events – the pattern Webflow documents for Cookiebot.",
     knownIssue: {
       text:
-        "The real failure is gating on the wrong category. The bridge reads Cookiebot.consent.statistics (analytics) or .marketing (targeting), so picking the category that does not match where Optimize sits silently tracks the wrong visitors. Confirm the category in the Cookiebot admin. Separately, and expected rather than a bug: any posture change moves what gets tracked, so the Analyze number will differ from GA4 and shift when the posture changes.",
+        "The bridge reads Cookiebot.consent.statistics (analytics) or .marketing (targeting), so the category chosen has to match where Optimize is actually classified in the Cookiebot admin – a mismatch would track the wrong visitors. Confirm the category there rather than assuming the default. Separately, and expected rather than a bug: a posture change shifts what gets tracked, so the Analyze number will differ from GA4.",
     },
   },
   trustarc: {
     name: "TrustArc",
-    gotcha: "Watch for: Auto Blocker blocking Optimize before any consent logic runs. The fix is a reclassification, included with the snippet.",
     detect: "window.truste is present (TrustArc Consent Manager).",
     cat: { marketing: "Advertising", analytics: "Functional", functional: "Functional" },
     catNote:
       "TrustArc emits no per-category JS event. This reads its PrivacyManagerAPI consent decision (the cmapi_cookie_privacy cookie) and checks the mapped category, rather than the trustarc.message example in Webflow's docs, which does not fire at runtime. The Auto Blocker reclassification below has to happen first, or nothing fires.",
     knownIssue: {
       text:
-        "TrustArc Auto Blocker blocks the Optimize script (intellimizeditor.com/common.js) by classification before any consent logic can run, so nothing fires and there is no obvious error. The fix is to reclassify Optimize from Functional to Required so Auto Blocker stops blocking it, then gate with the bridge below.",
+        "TrustArc's Auto Blocker classifies and blocks scripts before any consent logic runs, and can block the Optimize script (intellimizeditor.com/common.js) with no obvious error if it does. Reclassifying Optimize from Functional to Required in TrustArc prevents this – confirm the script actually loads before assuming the bridge below is the problem.",
     },
   },
   osano: {
     name: "Osano",
-    gotcha: "Watch for: Osano saving consent after Optimize starts. Reading consent on load fixes that race.",
     detect: "window.Osano is present and Osano.cm is available.",
     cat: { marketing: "MARKETING", analytics: "ANALYTICS", functional: "PERSONALIZATION" },
     catNote:
       "Reads Osano.cm.getConsent() (ACCEPT or DENY per category) on load and re-applies on osano-cm-consent-saved. Osano also requires osano.js to be the first script in the head.",
     knownIssue: {
       text:
-        "Osano can resolve and save consent after Optimize has already initialized, so the first pageview reads the wrong consent state (a race condition). Check Osano.cm.getConsent() on load for returning visitors and gate live changes on the osano-cm-consent-saved event, rather than assuming consent is ready when the snippet runs.",
+        "Because Osano can resolve and save consent after Optimize has already initialized, the first pageview can read the wrong consent state (a race condition). Check Osano.cm.getConsent() on load for returning visitors and gate live changes on the osano-cm-consent-saved event, rather than assuming consent is ready when the snippet runs.",
     },
   },
   cookieyes: {
     name: "CookieYes",
-    gotcha: "Watch for: Optimize sitting in a category CookieYes auto-blocks. Confirm it with Verify mode on the page.",
     detect: "window.getCkyConsent is defined, or a cookieyes-consent cookie is set.",
     cat: { marketing: "advertisement", analytics: "analytics", functional: "functional" },
     catNote:
       "Reads getCkyConsent().categories on banner load and detail.accepted on consent update. If 'Reload page on consent action' is enabled in CookieYes it can strip the referrer – consider turning it off.",
     knownIssue: {
       text:
-        "The recurring failure is CookieYes auto-blocking the Optimize script by category before any consent logic runs, so Optimize never loads and there is no obvious error. Confirm Optimize is not sitting in an auto-blocked category, then that the bridge grants once the mapped category is accepted. Check both on the live page rather than assuming the default placement is safe.",
+        "CookieYes can auto-block the Optimize script by category before any consent logic runs, with no obvious error if it does. Confirm on the live page that Optimize is not sitting in an auto-blocked category, then that the bridge grants once the mapped category is accepted – do not assume the default placement is safe.",
     },
   },
   usercentrics: {
     name: "Usercentrics",
-    gotcha: "Watch for: confusing Usercentrics with the Cookiebot it now owns. They use different APIs – this is the UC_UI and ucEvent app, not the CookiebotOnAccept events.",
     detect: "window.UC_UI is present (Usercentrics Browser SDK).",
     cat: { marketing: "Webflow Optimize", analytics: "Webflow Optimize", functional: "Webflow Optimize" },
     catNote:
       "Gates on the Usercentrics data processing service for Optimize, commonly named 'Webflow Optimize' or 'Intellimize'. The bridge reads UC_UI.getServicesBaseInfo(), finds that service, and uses its consent.status, refreshing on the ucEvent. Confirm the exact service name in the Usercentrics admin. This is the Usercentrics app, a different API from the Cookiebot product Usercentrics owns.",
     knownIssue: {
       text:
-        "Usercentrics now owns Cookiebot, and the two are easy to mix up: this app emits a ucEvent and exposes UC_UI.getServicesBaseInfo(), while the Cookiebot product uses the CookiebotOnAccept events. Wiring the wrong API is the common failure. Gate on the Optimize service's consent.status and re-read it on each ucEvent so returning visitors are handled as well.",
+        "Usercentrics now owns Cookiebot, and the two products use different APIs: this one emits a ucEvent and exposes UC_UI.getServicesBaseInfo(), while the Cookiebot product uses CookiebotOnAccept events. Confirm which product is actually on the page before wiring either. Gate on the Optimize service's consent.status and re-read it on each ucEvent so returning visitors are handled too.",
     },
   },
   ketch: {
     name: "Ketch",
-    gotcha: "Watch for: the Ketch banner showing but Optimize never receiving the decision, so tracking continues after a Deny. Wiring the consent event fixes it.",
     detect: "window.ketch or window.semaphore is present (Ketch Smart Tag), or a _ketch_consent_v1 cookie is set.",
     cat: { marketing: "advertising", analytics: "analytics", functional: "functional" },
     catNote:
       "Registers a Ketch consent listener through window.semaphore, the Smart Tag's queue, so it fires on cached, remote, and banner-interaction consent. Reads consent.purposes by purpose code. Purpose codes are configured per organization, so confirm them in the Ketch dashboard.",
     knownIssue: {
       text:
-        "A common Ketch setup shows the banner correctly but never passes the decision to Optimize, so tracking keeps running even after a visitor selects Deny. Subscribe to Ketch's consent event through window.semaphore and gate on the relevant purpose code, rather than assuming the banner alone controls Optimize. The same wiring works whether the site is opt-in or opt-out.",
+        "Showing the Ketch banner does not by itself control Optimize – without subscribing to Ketch's consent event through window.semaphore, tracking can keep running after a visitor selects Deny. Subscribe to that event and gate on the relevant purpose code rather than assuming the banner alone is wired to tracking. The same approach works whether the site is opt-in or opt-out.",
     },
   },
   didomi: {
     name: "Didomi",
-    gotcha: "Watch for: registering the consent listener inside didomiOnReady and missing the first event. Register it on didomiEventListeners instead.",
     detect: "window.Didomi is present, usually loaded from sdk.privacy-center.org.",
     cat: { marketing: "create_ads_profile", analytics: "measure_content_performance", functional: "functional" },
     catNote:
@@ -548,8 +540,8 @@ const BOOKMARKLET_SOURCE = `(function () {
     'Osano': 'Osano can save consent after Optimize starts, a race on the first pageview. This panel loads after the page, so it cannot see that first-pageview ordering. Reload the page and re-run this to confirm a returning visitor is read correctly.',
     'CookieYes': 'CookieYes can auto-block the Optimize script by category before any consent logic runs. Confirm the Optimize snippet row reads present, then that the bridge grants once the mapped category is accepted.',
     'Usercentrics': 'Usercentrics now owns Cookiebot and the two use different APIs. Confirm the integration reacts through the Usercentrics service, not the Cookiebot events: a banner click should log a (page) bridge call.',
-    'Ketch': 'A common Ketch setup shows the banner but never passes the decision to Optimize, so tracking continues after a Deny. Confirm the bridge logs a deny when you decline in the real banner.',
-    'Didomi': 'Didomi purpose and vendor IDs are configured per notice, so the wrong ID silently allows or denies everything. This panel sees allow or deny but not which purpose drove it, so accept-all can read as a false pass. Accept only the mapped Optimize purpose and confirm the bridge logs an allow.',
+    'Ketch': 'Showing the Ketch banner does not by itself control Optimize. Confirm the bridge logs a deny when you decline in the real banner.',
+    'Didomi': 'Didomi purpose and vendor IDs are configured per notice, so the wrong ID can silently allow or deny everything. This panel sees allow or deny but not which purpose drove it, so accept-all can read as a false pass. Accept only the mapped Optimize purpose and confirm the bridge logs an allow.',
     'DataGrail': 'DataGrail manages Optimize tracking directly through GTM, so there is no manual bridge. Confirm the Webflow tracking row flips when you accept or decline, and that no hand-rolled bridge is also present.',
     'Finsweet Consent Pro': 'Consent Pro manages Optimize tracking directly, so there is no manual bridge. Confirm the Webflow tracking row flips when you accept or decline, and that no hand-rolled bridge is also present.'
   };

@@ -25,8 +25,7 @@ Each platform entry carries the facts that drive both the explanatory UI and the
 - `detect` — how the tool (and a human) recognizes the CMP is present on a page (e.g. `window.OneTrust`).
 - `cat` — **the category/purpose mapping** (`marketing` / `analytics` / `functional` → the platform's own IDs). This feeds directly into the generated snippet. Most refreshes are changes here.
 - `catNote` — the prose explanation of the pattern and which event/API the snippet reads.
-- `knownIssue` — the recurring failure mode and the fix the snippet applies.
-- `gotcha` — the short "watch for" line surfaced in the UI.
+- `knownIssue` — a documented platform behavior or API-mechanics risk to watch for, and the fix the snippet applies. Phrase these as "can happen given how X's API works," never as a claimed frequency ("common," "recurring") unless that frequency is independently verifiable – these are technical risk callouts, not field-incident reports.
 - Native integrations (Finsweet Consent Pro, DataGrail) instead carry `native: true`, `nativeNote`, `docUrl`, `docLabel`, and `nativeChecks` — they need no generated bridge.
 
 ## The refresh process
