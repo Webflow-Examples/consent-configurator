@@ -1441,7 +1441,7 @@ function AccountIdField({ value, onChange }) {
         inputMode="numeric"
         value={value}
         onChange={function (e) { onChange(e.target.value); }}
-        placeholder="e.g. 117655390"
+        placeholder="e.g. 117761985"
       />
       <p className="acctid-help muted small">Found in the Optimize dashboard under Account settings. With it, the full snippet is generated; leave it blank to use a YOUR_ACCOUNT_ID placeholder you can swap later.</p>
     </div>
