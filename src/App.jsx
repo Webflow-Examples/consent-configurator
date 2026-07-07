@@ -374,9 +374,9 @@ function buildSnippet(cmpKey, posture, hosting, category, reload, activate) {
   if (cmpKey === "trustarc") pre.push("<!-- First: in TrustArc, reclassify Optimize from Functional to Required so Auto Blocker does not block intellimizeditor.com/common.js. -->");
 
   const allowOpts = [];
-  if (!activate) allowOpts.push("activate: false");
+  allowOpts.push(activate ? "activate: true" : "activate: false");
   if (reload) allowOpts.push("reload: true");
-  const allowArg = allowOpts.length ? "{ " + allowOpts.join(", ") + " }" : "";
+  const allowArg = "{ " + allowOpts.join(", ") + " }";
   const denyArg = reload ? "{ reload: true }" : "";
   const allowCall = "      if (ok && c !== 'allow') wf.allowUserTracking(" + allowArg + ");";
   const denyCall = "      else if (!ok && c !== 'deny') wf.denyUserTracking(" + denyArg + ");";
@@ -470,9 +470,9 @@ function buildNonHostedSnippet(cmpKey, posture, category, accountId, reload, act
   ];
 
   const allowOpts = [];
-  if (!activate) allowOpts.push("activate: false");
+  allowOpts.push(activate ? "activate: true" : "activate: false");
   if (reload) allowOpts.push("reload: true");
-  const allowArg = allowOpts.length ? "{ " + allowOpts.join(", ") + " }" : "";
+  const allowArg = "{ " + allowOpts.join(", ") + " }";
   const denyArg = reload ? "{ reload: true }" : "";
   const nhAllow = "        if (c !== 'allow') { applyAntiFlicker(); wf.allowUserTracking(" + allowArg + "); }";
   const nhDeny = "        if (c !== 'deny') wf.denyUserTracking(" + denyArg + ");";
@@ -990,8 +990,8 @@ function CodeBlock({ code, copyLabel, allowMinify }) {
 function LoadOrder({ posture, activate = true, reload = false }) {
   const denyFirst = posture !== "optout";
 
-  // The exact consent call, surfacing activate:false so it is clear why tracking stays held
-  const allowCall = activate ? "wf.allowUserTracking()" : "wf.allowUserTracking({ activate: false })";
+  // The exact consent call, surfacing activate explicitly so it is clear when tracking starts
+  const allowCall = activate ? "wf.allowUserTracking({ activate: true })" : "wf.allowUserTracking({ activate: false })";
   const denyCall = "wf.denyUserTracking()";
 
   // What happens after consent is granted, explicit about page view, reload, and activation
@@ -1066,7 +1066,7 @@ function buildGenericSnippet(posture, hosting) {
     "  if (window.wf && wf.ready) wf.ready(function () {",
     "    function apply(hasConsent) {",
     optIn ? null : "      if (navigator.globalPrivacyControl === true) { wf.denyUserTracking(); return; }",
-    "      if (hasConsent) { wf.allowUserTracking(); } else { wf.denyUserTracking(); }",
+    "      if (hasConsent) { wf.allowUserTracking({ activate: true }); } else { wf.denyUserTracking(); }",
     "    }",
     optIn ? "    wf.denyUserTracking(); // deny by default until consent resolves" : null,
     "    // 1) Replace with your CMP's consent-change event:",
