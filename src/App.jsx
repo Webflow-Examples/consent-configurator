@@ -23,7 +23,7 @@ const CATEGORY_LABEL = {
   functional: "Functional / Preferences",
 };
 
-const VERIFIED_ON = "June 2026";
+const VERIFIED_ON = "July 2026";
 // Paste a Loom or YouTube EMBED url (e.g. https://www.loom.com/embed/ID) to turn on the in-app tour. Empty hides it.
 const TUTORIAL_URL = "";
 // Licensing for the code this tool emits and ships. Holder standardized to Webflow, Inc.
@@ -47,6 +47,7 @@ const CMP_DOCS = {
   ketch: { url: "https://docs.ketch.com/", label: "Ketch developer documentation" },
   didomi: { url: "https://developers.didomi.io/", label: "Didomi Web SDK documentation" },
   cookieyes: { url: "https://www.cookieyes.com/documentation/", label: "CookieYes documentation" },
+  hubspot: { url: "https://developers.hubspot.com/docs/api-reference/cookie-banner/cookie-banner-api", label: "HubSpot cookie banner API" },
 };
 
 const CMPS = {
@@ -103,6 +104,17 @@ const CMPS = {
     knownIssue: {
       text:
         "CookieYes can auto-block the Optimize script by category before any consent logic runs, with no obvious error if it does. Confirm on the live page that Optimize is not sitting in an auto-blocked category, then that the bridge grants once the mapped category is accepted – do not assume the default placement is safe.",
+    },
+  },
+  hubspot: {
+    name: "HubSpot",
+    detect: "window._hsp is present (HubSpot tracking code with the cookie consent banner).",
+    cat: { marketing: "advertisement", analytics: "analytics", functional: "functionality" },
+    catNote:
+      "Registers an addPrivacyConsentListener through the _hsp queue and reads consent.categories. The keys – analytics, advertisement, functionality – are HubSpot's fixed categories, not per-account IDs, so no admin confirmation is needed. HubSpot calls the listener with the current decision when its code loads, so returning visitors are handled without a separate on-load read. The listener does not expose Global Privacy Control, so in opt-out mode GPC is honored through the browser signal only.",
+    knownIssue: {
+      text:
+        "HubSpot can call the consent listener before Webflow's tracking script has created window.wf – common with implied or auto consent, where the callback fires early with no banner interaction. A bridge that checks for wf once and skips when it is absent drops that first decision, so the first pageview is missed. The generated bridge waits for wf to exist before applying consent, rather than checking a single time. Confirm with Verify mode in a fresh (incognito) session, which exercises that first-pageview path.",
     },
   },
   usercentrics: {
@@ -173,7 +185,7 @@ const CMPS = {
   },
 };
 
-const CMP_ORDER = ["onetrust", "cookiebot", "usercentrics", "trustarc", "osano", "ketch", "didomi", "cookieyes", "consentpro", "datagrail", "custom"];
+const CMP_ORDER = ["onetrust", "cookiebot", "usercentrics", "trustarc", "osano", "ketch", "didomi", "cookieyes", "hubspot", "consentpro", "datagrail", "custom"];
 
 /* ------------------------------------------------------------------ */
 /*  Snippet generation                                                 */
@@ -334,6 +346,18 @@ function cmpReaderLines(cmpKey, category, optIn) {
       "  window.didomiOnReady.push(sync);",
     ];
   }
+  if (cmpKey === "hubspot") {
+    return [
+      `  var CATEGORY = '${catVal}'; // HubSpot categories are fixed: analytics, advertisement, functionality`,
+      "  window._hsp = window._hsp || [];",
+      "  _hsp.push(['addPrivacyConsentListener', function (consent) {",
+      gpc,
+      "    var cats = consent && consent.categories;",
+      "    var ok = cats ? !!cats[CATEGORY] : !!(consent && consent.allowed);",
+      "    applyConsent(ok);",
+      "  }]);",
+    ];
+  }
   return [];
 }
 
@@ -358,9 +382,18 @@ function buildSnippet(cmpKey, posture, hosting, category, reload, activate) {
   const denyCall = "      else if (!ok && c !== 'deny') wf.denyUserTracking(" + denyArg + ");";
   const open = [
     "<script>",
+    "  // Wait for Webflow's wf object to exist before applying consent. A CMP can",
+    "  // resolve consent before wf loads (common with implied/auto consent); checking",
+    "  // once and skipping would silently drop that first decision and miss page one.",
+    "  function withWf(cb) {",
+    "    var t0 = Date.now();",
+    "    (function run() {",
+    "      if (window.wf && wf.ready) return wf.ready(cb);",
+    "      if (Date.now() - t0 < 5000) setTimeout(run, 100);",
+    "    })();",
+    "  }",
     "  function applyConsent(ok) {",
-    "    if (!(window.wf && wf.ready)) return;",
-    "    wf.ready(function () {",
+    "    withWf(function () {",
     "      var c = wf.getUserTrackingChoice && wf.getUserTrackingChoice();",
     allowCall,
     denyCall,
@@ -542,6 +575,7 @@ const BOOKMARKLET_SOURCE = `(function () {
     'Usercentrics': 'Usercentrics now owns Cookiebot and the two use different APIs. Confirm the integration reacts through the Usercentrics service, not the Cookiebot events: a banner click should log a (page) bridge call.',
     'Ketch': 'Showing the Ketch banner does not by itself control Optimize. Confirm the bridge logs a deny when you decline in the real banner.',
     'Didomi': 'Didomi purpose and vendor IDs are configured per notice, so the wrong ID can silently allow or deny everything. This panel sees allow or deny but not which purpose drove it, so accept-all can read as a false pass. Accept only the mapped Optimize purpose and confirm the bridge logs an allow.',
+    'HubSpot': 'HubSpot can fire the consent listener before the Webflow wf object exists (common with implied/auto consent), so a bridge that checks for wf once would drop the first decision. The generated bridge waits for wf instead. This panel loads after the page, so reload in a private window to exercise that first-pageview path. HubSpot categories are fixed (analytics, advertisement, functionality) – accept only the mapped one and confirm an allow.',
     'DataGrail': 'DataGrail manages Optimize tracking directly through GTM, so there is no manual bridge. Confirm the Webflow tracking row flips when you accept or decline, and that no hand-rolled bridge is also present.',
     'Finsweet Consent Pro': 'Consent Pro manages Optimize tracking directly, so there is no manual bridge. Confirm the Webflow tracking row flips when you accept or decline, and that no hand-rolled bridge is also present.'
   };
@@ -556,7 +590,8 @@ const BOOKMARKLET_SOURCE = `(function () {
     else if (window.Didomi) cmp = 'Didomi';
     else if (window.getCkyConsent || document.cookie.indexOf('cookieyes-consent') !== -1) cmp = 'CookieYes';
     else if (document.querySelector('script[finsweet="consentpro"], [fs-cc]') || document.cookie.indexOf('fs-cc') !== -1) cmp = 'Finsweet Consent Pro';
-    var by = [['onetrust', 'OneTrust'], ['cookielaw', 'OneTrust'], ['cookiebot', 'Cookiebot'], ['usercentrics', 'Usercentrics'], ['trustarc', 'TrustArc'], ['osano', 'Osano'], ['ketch', 'Ketch'], ['didomi', 'Didomi'], ['cookieyes', 'CookieYes'], ['clarip', 'Clarip'], ['cookieinformation', 'Cookie Information'], ['cookiecontrol', 'Civic Cookie Control'], ['termly', 'Termly'], ['iubenda', 'iubenda'], ['quantcast', 'Quantcast'], ['sourcepoint', 'Sourcepoint'], ['cassie', 'Cassie'], ['datagrail', 'DataGrail'], ['consentpro', 'Finsweet Consent Pro'], ['finsweet', 'Finsweet Consent Pro'], ['fs-cc', 'Finsweet Consent Pro']];
+    else if (window._hsp) cmp = 'HubSpot';
+    var by = [['onetrust', 'OneTrust'], ['cookielaw', 'OneTrust'], ['cookiebot', 'Cookiebot'], ['usercentrics', 'Usercentrics'], ['trustarc', 'TrustArc'], ['osano', 'Osano'], ['ketch', 'Ketch'], ['didomi', 'Didomi'], ['cookieyes', 'CookieYes'], ['clarip', 'Clarip'], ['cookieinformation', 'Cookie Information'], ['cookiecontrol', 'Civic Cookie Control'], ['termly', 'Termly'], ['iubenda', 'iubenda'], ['quantcast', 'Quantcast'], ['sourcepoint', 'Sourcepoint'], ['cassie', 'Cassie'], ['datagrail', 'DataGrail'], ['consentpro', 'Finsweet Consent Pro'], ['finsweet', 'Finsweet Consent Pro'], ['fs-cc', 'Finsweet Consent Pro'], ['hs-banner', 'HubSpot'], ['hs-scripts', 'HubSpot']];
     var known = [];
     for (var n = 0; n < by.length; n++) { if (known.indexOf(by[n][1]) === -1) known.push(by[n][1]); }
     if (cmp === 'None recognized') {
