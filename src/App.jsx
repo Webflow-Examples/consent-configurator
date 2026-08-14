@@ -23,7 +23,7 @@ const CATEGORY_LABEL = {
   functional: "Functional / Preferences",
 };
 
-const VERIFIED_ON = "July 2026";
+const VERIFIED_ON = "August 2026";
 // Paste a Loom or YouTube EMBED url (e.g. https://www.loom.com/embed/ID) to turn on the in-app tour. Empty hides it.
 const TUTORIAL_URL = "";
 // Licensing for the code this tool emits and ships. Holder standardized to Webflow, Inc.
@@ -43,17 +43,18 @@ const CMP_DOCS = {
   cookiebot: { url: "https://www.cookiebot.com/en/developer/", label: "Cookiebot developer reference" },
   usercentrics: { url: "https://usercentrics.com/docs/", label: "Usercentrics Web SDK documentation" },
   trustarc: { url: "https://trustarchelp.zendesk.com/hc/en-us/articles/43771883505683-Integrating-the-Consent-Mode-v-2-0-Using-Google-Tag-Template", label: "TrustArc consent mode / PrivacyManagerAPI guide" },
-  osano: { url: "https://docs.osano.com/", label: "Osano developer documentation" },
+  osano: { url: "https://developers.osano.com/cmp/javascript-api/developer-documentation-consent-javascript-api", label: "Osano consent JavaScript API" },
   ketch: { url: "https://docs.ketch.com/", label: "Ketch developer documentation" },
   didomi: { url: "https://developers.didomi.io/", label: "Didomi Web SDK documentation" },
   cookieyes: { url: "https://www.cookieyes.com/documentation/", label: "CookieYes documentation" },
   hubspot: { url: "https://developers.hubspot.com/docs/api-reference/cookie-banner/cookie-banner-api", label: "HubSpot cookie banner API" },
+  enzuzo: { url: "https://www.enzuzo.com/blog/install-and-implement-google-consent-mode", label: "Enzuzo Google Consent Mode guide" },
 };
 
 const CMPS = {
   onetrust: {
     name: "OneTrust",
-    detect: "window.OneTrust or window.Optanon is present and OptanonWrapper() is defined.",
+    detect: "window.OneTrust is present (window.Optanon is the legacy alias); OptanonWrapper() is defined by the implementation.",
     cat: { marketing: "C0004", analytics: "C0002", functional: "C0003" },
     catNote:
       "Webflow's recommended pattern uses OneTrust.OnConsentChanged and reads OnetrustActiveGroups. Group IDs (commonly C0004 Targeting, C0002 Performance) are configured per tenant – confirm the mapping in the OneTrust admin.",
@@ -89,7 +90,7 @@ const CMPS = {
     detect: "window.Osano is present and Osano.cm is available.",
     cat: { marketing: "MARKETING", analytics: "ANALYTICS", functional: "PERSONALIZATION" },
     catNote:
-      "Reads Osano.cm.getConsent() (ACCEPT or DENY per category) on load and re-applies on osano-cm-consent-saved. Osano also requires osano.js to be the first script in the head.",
+      "Reads Osano.cm.getConsent() (ACCEPT or DENY per category) on load and re-applies on osano-cm-consent-saved. Osano also requires osano.js to be the first script in the document.",
     knownIssue: {
       text:
         "Because Osano can resolve and save consent after Optimize has already initialized, the first pageview can read the wrong consent state (a race condition). Check Osano.cm.getConsent() on load for returning visitors and gate live changes on the osano-cm-consent-saved event, rather than assuming consent is ready when the snippet runs.",
@@ -100,7 +101,7 @@ const CMPS = {
     detect: "window.getCkyConsent is defined, or a cookieyes-consent cookie is set.",
     cat: { marketing: "advertisement", analytics: "analytics", functional: "functional" },
     catNote:
-      "Reads getCkyConsent().categories on banner load and detail.accepted on consent update. If 'Reload page on consent action' is enabled in CookieYes it can strip the referrer – consider turning it off.",
+      "Reads getCkyConsent().categories on the cookieyes_banner_load event and detail.accepted on cookieyes_consent_update. (getCkyConsent() is guaranteed ready on the separate cookieyes_banner_loaded event.) CookieYes also has a 'Reload page on consent action' setting; if it is on, a consent click reloads the page, so confirm that does not interfere with tracking on that view.",
     knownIssue: {
       text:
         "CookieYes can auto-block the Optimize script by category before any consent logic runs, with no obvious error if it does. Confirm on the live page that Optimize is not sitting in an auto-blocked category, then that the bridge grants once the mapped category is accepted – do not assume the default placement is safe.",
@@ -117,12 +118,23 @@ const CMPS = {
         "HubSpot can call the consent listener before Webflow's tracking script has created window.wf – common with implied or auto consent, where the callback fires early with no banner interaction. A bridge that checks for wf once and skips when it is absent drops that first decision, so the first pageview is missed. The generated bridge waits for wf to exist before applying consent, rather than checking a single time. Confirm with Verify mode in a fresh (incognito) session, which exercises that first-pageview path.",
     },
   },
+  enzuzo: {
+    name: "Enzuzo",
+    detect: "window.enzuzoGtmConsentObj is present, or the Enzuzo cookie banner loads from app.enzuzo.com/scripts/cookiebar.",
+    cat: { marketing: "ad_storage", analytics: "analytics_storage", functional: "functionality_storage" },
+    catNote:
+      "Reads window.enzuzoGtmConsentObj, a Google Consent Mode v2 map with 'granted'/'denied' values, and re-checks on Enzuzo's enzuzo_consent_update dataLayer event – the mechanism Enzuzo documents for reacting to consent changes. That event is a trigger only (it carries no consent values), so the bridge re-reads the object when it fires. The full GCM key set (ad_storage, analytics_storage, functionality_storage, personalization_storage, security_storage, ad_user_data, ad_personalization) is present on live Enzuzo installs, though Enzuzo's formal docs only spell out the ad/analytics keys – so confirm the mapped category with Verify mode. Which Consent Mode category Webflow Optimize belongs to is the privacy team's call.",
+    knownIssue: {
+      text:
+        "Enzuzo exposes consent as a Google Consent Mode object (window.enzuzoGtmConsentObj) and fires an enzuzo_consent_update dataLayer event on change; there is no documented DOM event or JS callback, so hand-rolled versions often resort to a MutationObserver or polling. The generated bridge instead reads the object on load with a bounded wait and hooks the dataLayer event, so it does not poll forever. Because the object name is observed rather than documented, it is read defensively and tolerates missing keys – confirm on the live page with Verify mode.",
+    },
+  },
   usercentrics: {
     name: "Usercentrics",
-    detect: "window.UC_UI is present (Usercentrics Browser SDK).",
+    detect: "window.UC_UI is present; the current V3 CMP also registers window.__ucCmp.",
     cat: { marketing: "Webflow Optimize", analytics: "Webflow Optimize", functional: "Webflow Optimize" },
     catNote:
-      "Gates on the Usercentrics data processing service for Optimize, commonly named 'Webflow Optimize' or 'Intellimize'. The bridge reads UC_UI.getServicesBaseInfo(), finds that service, and uses its consent.status, refreshing on the ucEvent. Confirm the exact service name in the Usercentrics admin. This is the Usercentrics app, a different API from the Cookiebot product Usercentrics owns.",
+      "Gates on the Usercentrics data processing service for Optimize, commonly named 'Webflow Optimize' or 'Intellimize'. The bridge reads UC_UI.getServicesBaseInfo(), finds that service, and uses its consent.status, refreshing on the ucEvent (whose name is configured per account in the Usercentrics data-layer settings). Confirm the exact service name in the Usercentrics admin. UC_UI still works in the current V3 CMP; V3 also exposes window.__ucCmp with an async getConsentDetails() as the newer path. This is the Usercentrics app, a different API from the Cookiebot product Usercentrics owns.",
     knownIssue: {
       text:
         "Usercentrics now owns Cookiebot, and the two products use different APIs: this one emits a ucEvent and exposes UC_UI.getServicesBaseInfo(), while the Cookiebot product uses CookiebotOnAccept events. Confirm which product is actually on the page before wiring either. Gate on the Optimize service's consent.status and re-read it on each ucEvent so returning visitors are handled too.",
@@ -130,10 +142,10 @@ const CMPS = {
   },
   ketch: {
     name: "Ketch",
-    detect: "window.ketch or window.semaphore is present (Ketch Smart Tag), or a _ketch_consent_v1 cookie is set.",
+    detect: "window.ketch or window.semaphore is present (Ketch Smart Tag).",
     cat: { marketing: "advertising", analytics: "analytics", functional: "functional" },
     catNote:
-      "Registers a Ketch consent listener through window.semaphore, the Smart Tag's queue, so it fires on cached, remote, and banner-interaction consent. Reads consent.purposes by purpose code. Purpose codes are configured per organization, so confirm them in the Ketch dashboard.",
+      "Registers a Ketch consent listener via the ketch() function (falling back to the legacy window.semaphore queue), so it fires on cached, remote, and banner-interaction consent. Reads consent.purposes by purpose code. Purpose codes are configured per organization, so confirm them in the Ketch dashboard.",
     knownIssue: {
       text:
         "Showing the Ketch banner does not by itself control Optimize – without subscribing to Ketch's consent event through window.semaphore, tracking can keep running after a visitor selects Deny. Subscribe to that event and gate on the relevant purpose code rather than assuming the banner alone is wired to tracking. The same approach works whether the site is opt-in or opt-out.",
@@ -151,17 +163,18 @@ const CMPS = {
     },
   },
   consentpro: {
-    name: "Finsweet Consent Pro",
+    name: "Consent Pro",
     native: true,
-    detect: "Finsweet Consent Pro – Webflow-native, installed through the Designer.",
+    detect: "Consent Pro – Webflow-integrated, installed through the Designer as an App.",
     nativeNote:
-      "Consent Pro is built and maintained by Finsweet and installs through the Webflow Designer, so it manages Optimize and Analyze tracking consent directly. No manual wf.allowUserTracking() bridge is needed – the integration sets the tracking default from the visitor's choice. It requires a paid Finsweet plan for production domains.",
+      "Consent Pro is a Webflow-integrated CMP installed through the Designer as an App. It integrates automatically with Webflow Insights (Analyze and Optimize), loading or blocking tracking based on the visitor's consent, so no manual wf.allowUserTracking() bridge is needed. It works with the geolocation feature, applying opt-in or opt-out per region. Consent Pro is free on staging .webflow.io URLs; production on a custom domain needs an active Consent Pro plan.",
     docUrl: "https://help.webflow.com/hc/en-us/articles/34394790067859-Integrate-Consent-Pro-for-consent-management",
     docLabel: "Integrate Consent Pro for consent management (Webflow Help)",
     nativeChecks: [
-      ["Tracking setting", "Set Optimize and Analyze tracking to opt-out or opt-in in Webflow to match the posture the privacy team wants; Consent Pro enforces it from there."],
+      ["Tracking setting", "Set the Webflow tracking default to opt-in (don't track by default) or opt-out (let visitors opt out) to match the posture the privacy team wants; Consent Pro serves the matching banner and enforces it."],
       ["No manual snippet", "Remove any hand-rolled wf.allowUserTracking() bridge so the two do not conflict."],
-      ["Plan", "Consent Pro needs a paid Finsweet plan for production domains."],
+      ["Per region", "With geolocation on, Consent Pro applies the right posture per region and still integrates with Insights."],
+      ["Plan", "Free on staging .webflow.io URLs; production on a custom domain needs an active Consent Pro plan."],
     ],
   },
   datagrail: {
@@ -185,7 +198,7 @@ const CMPS = {
   },
 };
 
-const CMP_ORDER = ["onetrust", "cookiebot", "usercentrics", "trustarc", "osano", "ketch", "didomi", "cookieyes", "hubspot", "consentpro", "datagrail", "custom"];
+const CMP_ORDER = ["onetrust", "cookiebot", "usercentrics", "trustarc", "osano", "ketch", "didomi", "cookieyes", "hubspot", "enzuzo", "consentpro", "datagrail", "custom"];
 
 /* ------------------------------------------------------------------ */
 /*  Snippet generation                                                 */
@@ -356,6 +369,34 @@ function cmpReaderLines(cmpKey, category, optIn) {
       "    var ok = cats ? !!cats[CATEGORY] : !!(consent && consent.allowed);",
       "    applyConsent(ok);",
       "  }]);",
+    ];
+  }
+  if (cmpKey === "enzuzo") {
+    return [
+      `  var CATEGORY = '${catVal}'; // Google Consent Mode key. Enzuzo docs confirm ad_storage/analytics_storage; confirm your functional key on the live banner.`,
+      "  function sync() {",
+      gpc,
+      "    var c = window.enzuzoGtmConsentObj;",
+      `    if (!c) { applyConsent(${defAllow}); return; }`,
+      "    applyConsent(c[CATEGORY] === 'granted');",
+      "  }",
+      "  // Enzuzo signals consent changes through the enzuzo_consent_update dataLayer event.",
+      "  window.dataLayer = window.dataLayer || [];",
+      "  var _push = window.dataLayer.push;",
+      "  window.dataLayer.push = function () {",
+      "    var r = _push.apply(this, arguments);",
+      "    for (var i = 0; i < arguments.length; i++) {",
+      "      if (arguments[i] && arguments[i].event === 'enzuzo_consent_update') sync();",
+      "    }",
+      "    return r;",
+      "  };",
+      "  // Read the initial state once Enzuzo has populated it (bounded wait, not permanent polling).",
+      "  var t0 = Date.now();",
+      "  (function initial() {",
+      "    if (window.enzuzoGtmConsentObj) return sync();",
+      `    if (Date.now() - t0 < 5000) return setTimeout(initial, 100);`,
+      `    applyConsent(${defAllow});`,
+      "  })();",
     ];
   }
   return [];
@@ -577,7 +618,8 @@ const BOOKMARKLET_SOURCE = `(function () {
     'Didomi': 'Didomi purpose and vendor IDs are configured per notice, so the wrong ID can silently allow or deny everything. This panel sees allow or deny but not which purpose drove it, so accept-all can read as a false pass. Accept only the mapped Optimize purpose and confirm the bridge logs an allow.',
     'HubSpot': 'HubSpot can fire the consent listener before the Webflow wf object exists (common with implied/auto consent), so a bridge that checks for wf once would drop the first decision. The generated bridge waits for wf instead. This panel loads after the page, so reload in a private window to exercise that first-pageview path. HubSpot categories are fixed (analytics, advertisement, functionality) – accept only the mapped one and confirm an allow.',
     'DataGrail': 'DataGrail manages Optimize tracking directly through GTM, so there is no manual bridge. Confirm the Webflow tracking row flips when you accept or decline, and that no hand-rolled bridge is also present.',
-    'Finsweet Consent Pro': 'Consent Pro manages Optimize tracking directly, so there is no manual bridge. Confirm the Webflow tracking row flips when you accept or decline, and that no hand-rolled bridge is also present.'
+    'Consent Pro': 'Consent Pro manages Optimize tracking directly, so there is no manual bridge. Confirm the Webflow tracking row flips when you accept or decline, and that no hand-rolled bridge is also present.',
+    'Enzuzo': 'Enzuzo exposes consent as a Google Consent Mode object (window.enzuzoGtmConsentObj) and fires an enzuzo_consent_update dataLayer event on change. The object name is observed, not documented, so confirm the mapped key actually flips: accept only the mapped category and watch for an allow. This panel loads after the page; reload in a private window to check the first-pageview path.'
   };
   function detectAll() {
     var cmp = 'None recognized', via = '';
@@ -589,9 +631,10 @@ const BOOKMARKLET_SOURCE = `(function () {
     else if (window.ketch || window.semaphore) cmp = 'Ketch';
     else if (window.Didomi) cmp = 'Didomi';
     else if (window.getCkyConsent || document.cookie.indexOf('cookieyes-consent') !== -1) cmp = 'CookieYes';
-    else if (document.querySelector('script[finsweet="consentpro"], [fs-cc]') || document.cookie.indexOf('fs-cc') !== -1) cmp = 'Finsweet Consent Pro';
-    else if (window._hsp) cmp = 'HubSpot';
-    var by = [['onetrust', 'OneTrust'], ['cookielaw', 'OneTrust'], ['cookiebot', 'Cookiebot'], ['usercentrics', 'Usercentrics'], ['trustarc', 'TrustArc'], ['osano', 'Osano'], ['ketch', 'Ketch'], ['didomi', 'Didomi'], ['cookieyes', 'CookieYes'], ['clarip', 'Clarip'], ['cookieinformation', 'Cookie Information'], ['cookiecontrol', 'Civic Cookie Control'], ['termly', 'Termly'], ['iubenda', 'iubenda'], ['quantcast', 'Quantcast'], ['sourcepoint', 'Sourcepoint'], ['cassie', 'Cassie'], ['datagrail', 'DataGrail'], ['consentpro', 'Finsweet Consent Pro'], ['finsweet', 'Finsweet Consent Pro'], ['fs-cc', 'Finsweet Consent Pro'], ['hs-banner', 'HubSpot'], ['hs-scripts', 'HubSpot']];
+    else if (document.querySelector('script[finsweet="consentpro"], [fs-cc]') || document.cookie.indexOf('fs-cc') !== -1) cmp = 'Consent Pro';
+    else if (window.enzuzoGtmConsentObj) cmp = 'Enzuzo';
+    else if (window._hsp) cmp = 'HubSpot'; // weak signal (HubSpot is often present just as CRM/tracking) – keep last
+    var by = [['onetrust', 'OneTrust'], ['cookielaw', 'OneTrust'], ['cookiebot', 'Cookiebot'], ['usercentrics', 'Usercentrics'], ['trustarc', 'TrustArc'], ['osano', 'Osano'], ['ketch', 'Ketch'], ['didomi', 'Didomi'], ['cookieyes', 'CookieYes'], ['clarip', 'Clarip'], ['cookieinformation', 'Cookie Information'], ['cookiecontrol', 'Civic Cookie Control'], ['termly', 'Termly'], ['iubenda', 'iubenda'], ['quantcast', 'Quantcast'], ['sourcepoint', 'Sourcepoint'], ['cassie', 'Cassie'], ['datagrail', 'DataGrail'], ['consentpro', 'Consent Pro'], ['finsweet', 'Consent Pro'], ['fs-cc', 'Consent Pro'], ['enzuzo', 'Enzuzo'], ['hs-banner', 'HubSpot'], ['hs-scripts', 'HubSpot']];
     var known = [];
     for (var n = 0; n < by.length; n++) { if (known.indexOf(by[n][1]) === -1) known.push(by[n][1]); }
     if (cmp === 'None recognized') {

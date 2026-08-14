@@ -26,11 +26,11 @@ Each platform entry carries the facts that drive both the explanatory UI and the
 - `cat` — **the category/purpose mapping** (`marketing` / `analytics` / `functional` → the platform's own IDs). This feeds directly into the generated snippet. Most refreshes are changes here.
 - `catNote` — the prose explanation of the pattern and which event/API the snippet reads.
 - `knownIssue` — a documented platform behavior or API-mechanics risk to watch for, and the fix the snippet applies. Phrase these as "can happen given how X's API works," never as a claimed frequency ("common," "recurring") unless that frequency is independently verifiable – these are technical risk callouts, not field-incident reports.
-- Native integrations (Finsweet Consent Pro, DataGrail) instead carry `native: true`, `nativeNote`, `docUrl`, `docLabel`, and `nativeChecks` — they need no generated bridge.
+- Native integrations (Consent Pro, DataGrail) instead carry `native: true`, `nativeNote`, `docUrl`, `docLabel`, and `nativeChecks` — they need no generated bridge.
 
 ## The refresh process
 
-For each CMP in `CMPS` (currently: OneTrust, Cookiebot, Usercentrics, TrustArc, Osano, Ketch, Didomi, CookieYes, plus the native paths Finsweet Consent Pro and DataGrail):
+For each CMP in `CMPS` (currently: OneTrust, Cookiebot, Usercentrics, TrustArc, Osano, Ketch, Didomi, CookieYes, HubSpot, Enzuzo, plus the native paths Consent Pro and DataGrail):
 
 1. **Re-read the vendor's current docs.** Start from the URL in `CMP_DOCS` (and the native `docUrl` for Consent Pro / DataGrail). Fix the URL if the vendor moved it.
 2. **Diff against the encoded model.** Check that `detect`, `cat` (category/purpose IDs), the event names in `catNote`, and the `knownIssue` still match what the vendor documents.
