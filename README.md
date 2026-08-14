@@ -41,7 +41,7 @@ The per-CMP knowledge (reference docs, category mappings, known failure modes, a
 
 ## Changelog
 
-### August 2026
+### 1.1.0 — 2026-08-14
 
 - Added **HubSpot** and **Enzuzo** as supported CMPs. The Enzuzo bridge was verified end to end on a live site; it hooks Enzuzo's `enzuzo_consent_update` dataLayer event instead of the polling workarounds seen in the wild.
 - Re-verified every CMP's API pattern against current vendor docs. Ketch now uses the current `ketch()` entrypoint (`semaphore.push` is legacy); Usercentrics detection adds `window.__ucCmp` for the V3 CMP; CookieYes and Osano notes tightened.
@@ -49,6 +49,6 @@ The per-CMP knowledge (reference docs, category mappings, known failure modes, a
 - Fixed detection priority so a site's dedicated CMP is recognized ahead of HubSpot's tracking presence (`window._hsp`), which is common on sites that use HubSpot only as a CRM.
 - The generated bridge now waits for `wf` to exist before applying consent, so a consent signal that fires before Webflow loads is no longer dropped, and it emits `activate: true` explicitly so tracking starts on the current page view.
 
-### June 2026
+### 1.0.0 — 2026-06-30
 
 - Initial release: guided, express, and verify modes, with support for OneTrust, Cookiebot, Usercentrics, TrustArc, Osano, Ketch, Didomi, CookieYes, and the native paths Consent Pro and DataGrail.
