@@ -45,7 +45,8 @@ For each CMP in `CMPS` (currently: OneTrust, Cookiebot, Usercentrics, TrustArc, 
 
 Every re-verification pass, newest first. "No drift" means the encoded patterns still matched current vendor docs.
 
-- **2026-08-14** — Full pass, all CMPs. No drift: OneTrust, Cookiebot, Osano, Didomi, DataGrail, TrustArc. Fixed: Ketch (`ketch()` primary), Usercentrics (`__ucCmp` detection), CookieYes (wording), Consent Pro (rename, geolocation), Osano (doc URL), OneTrust (detect wording). Added Enzuzo (live-verified) and HubSpot. `VERIFIED_ON` → August 2026.
+- **2026-08-14** — Full pass, all CMPs. No drift: OneTrust, Cookiebot, Osano, Didomi, DataGrail, TrustArc, HubSpot. Fixed: Ketch (`ketch()` primary), Usercentrics (`__ucCmp` detection), CookieYes (wording), Consent Pro (rename, geolocation), Osano (doc URL), OneTrust (detect wording). Added Enzuzo (live-verified). `VERIFIED_ON` → August 2026.
+- **2026-07-07** — Added HubSpot (verified against current docs on add). Added the wait-for-`wf` readiness fix to the generated bridge.
 
 ## Build
 
