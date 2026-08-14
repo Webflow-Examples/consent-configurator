@@ -36,9 +36,16 @@ For each CMP in `CMPS` (currently: OneTrust, Cookiebot, Usercentrics, TrustArc, 
 2. **Diff against the encoded model.** Check that `detect`, `cat` (category/purpose IDs), the event names in `catNote`, and the `knownIssue` still match what the vendor documents.
 3. **Update the entry** in `CMPS` (and `CMP_DOCS`) where reality has drifted.
 4. **Update the snippet builder** if the vendor changed the *shape* of its API — a new event name, a different consent-read call, a changed return structure. ID-only changes usually need only the `cat` map.
-5. **Bump `VERIFIED_ON`** once everything has been re-checked.
+5. **Bump `VERIFIED_ON`** once everything has been re-checked — even if nothing drifted. The stamp means "these patterns were checked against current docs on this date," so a no-change pass still moves it forward; a date that stops advancing reads as neglected, not stable.
 6. **Rebuild:** `npm run build` (produces `dist/index.html`).
 7. **Verify on a live page.** Load the rebuilt tool, generate the snippet for the changed CMP, install it on a Webflow page running that CMP, and use the tool's **Verify mode** (drag the bookmarklet onto the page) to confirm the Webflow tracking consent API toggles correctly on accept/decline. Do this per changed CMP before considering the refresh done.
+8. **Record the pass** in the Verification log below — one line, including no-drift passes. A no-change pass produces no version bump and no README changelog entry, so this log is the only record that the check happened. Reserve the README changelog for actual changes (new CMPs, drift fixes, features).
+
+## Verification log
+
+Every re-verification pass, newest first. "No drift" means the encoded patterns still matched current vendor docs.
+
+- **2026-08-14** — Full pass, all CMPs. No drift: OneTrust, Cookiebot, Osano, Didomi, DataGrail, TrustArc. Fixed: Ketch (`ketch()` primary), Usercentrics (`__ucCmp` detection), CookieYes (wording), Consent Pro (rename, geolocation), Osano (doc URL), OneTrust (detect wording). Added Enzuzo (live-verified) and HubSpot. `VERIFIED_ON` → August 2026.
 
 ## Build
 

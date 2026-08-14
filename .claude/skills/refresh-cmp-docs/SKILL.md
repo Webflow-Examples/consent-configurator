@@ -43,9 +43,10 @@ Work one CMP at a time. For each:
 
 After all changed CMPs are done:
 
-6. **Bump `VERIFIED_ON`** to the current month/year.
-7. **Rebuild:** `npm run build` → produces `dist/index.html`. Confirm it builds cleanly.
-8. **Verify on a live page (per changed CMP).** This step is required, not optional:
+6. **Bump `VERIFIED_ON`** to the current month/year — even if nothing drifted. The stamp means "checked against current docs on this date," so a no-change pass still advances it.
+7. **Record the pass** in the Verification log in `MAINTENANCE.md` — one line, newest first, including no-drift passes. This is the only durable record of a pass that changed nothing; the README changelog is for actual changes only (new CMPs, drift fixes).
+8. **Rebuild:** `npm run build` → produces `dist/index.html`. Confirm it builds cleanly.
+9. **Verify on a live page (per changed CMP).** This step is required, not optional:
    - Open the rebuilt `dist/index.html`, select the changed CMP, and generate its snippet.
    - Install it on a Webflow page running that CMP (or a test page with the CMP loaded).
    - Switch the tool to **Verify mode** and drag the bookmarklet onto the page.
