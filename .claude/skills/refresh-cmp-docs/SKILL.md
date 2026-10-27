@@ -1,6 +1,6 @@
 ---
 name: refresh-cmp-docs
-description: Re-verify and update the per-CMP knowledge that the consent configurator uses to generate code. Use whenever a consent platform (OneTrust, Cookiebot, Usercentrics, TrustArc, Osano, Ketch, Didomi, CookieYes, HubSpot, Enzuzo, Consent Pro, DataGrail) changes its API, when a generated snippet is reported broken, or on a periodic re-verification pass. Updates the vendor reference docs, the category/purpose mappings, the snippet builders, the VERIFIED_ON stamp, rebuilds, and verifies on a live page.
+description: Re-verify and update the per-CMP knowledge that the consent configurator uses to generate code. Use whenever a consent platform (OneTrust, Cookiebot, Usercentrics, TrustArc, Osano, Ketch, Didomi, CookieYes, HubSpot, Enzuzo, Relyance, Consent Pro, DataGrail) changes its API, when a generated snippet is reported broken, or on a periodic re-verification pass. Updates the vendor reference docs, the category/purpose mappings, the snippet builders, the VERIFIED_ON stamp, rebuilds, and verifies on a live page.
 ---
 
 # Refresh CMP docs
@@ -25,7 +25,7 @@ In `src/App.jsx`:
 
 Confirm these line numbers by grepping (`grep -n "const CMPS" src/App.jsx`) before editing — the file changes over time.
 
-The CMPs to cover: OneTrust, Cookiebot, Usercentrics, TrustArc, Osano, Ketch, Didomi, CookieYes, HubSpot, Enzuzo (snippet-generating), plus Consent Pro and DataGrail (native, no generated bridge).
+The CMPs to cover: OneTrust, Cookiebot, Usercentrics, TrustArc, Osano, Ketch, Didomi, CookieYes, HubSpot, Enzuzo, Relyance (snippet-generating), plus Consent Pro and DataGrail (native, no generated bridge).
 
 ## Process
 

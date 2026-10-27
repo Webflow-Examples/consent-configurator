@@ -30,7 +30,7 @@ Each platform entry carries the facts that drive both the explanatory UI and the
 
 ## The refresh process
 
-For each CMP in `CMPS` (currently: OneTrust, Cookiebot, Usercentrics, TrustArc, Osano, Ketch, Didomi, CookieYes, HubSpot, Enzuzo, plus the native paths Consent Pro and DataGrail):
+For each CMP in `CMPS` (currently: OneTrust, Cookiebot, Usercentrics, TrustArc, Osano, Ketch, Didomi, CookieYes, HubSpot, Enzuzo, Relyance (no public vendor docs; re-check against a live Relyance site), plus the native paths Consent Pro and DataGrail):
 
 1. **Re-read the vendor's current docs.** Start from the URL in `CMP_DOCS` (and the native `docUrl` for Consent Pro / DataGrail). Fix the URL if the vendor moved it.
 2. **Diff against the encoded model.** Check that `detect`, `cat` (category/purpose IDs), the event names in `catNote`, and the `knownIssue` still match what the vendor documents.
@@ -45,6 +45,7 @@ For each CMP in `CMPS` (currently: OneTrust, Cookiebot, Usercentrics, TrustArc, 
 
 Every re-verification pass, newest first. "No drift" means the encoded patterns still matched current vendor docs.
 
+- **2026-10-27** — Pass for the 1.3.0 release. No drift: OneTrust (API; note corrected, since Webflow's example reads the `OptanonConsent` cookie, not `OnetrustActiveGroups`), Cookiebot, Osano, Didomi, CookieYes, HubSpot, Enzuzo (docs still do not mention `enzuzoGtmConsentObj`), Webflow consent API (`allowUserTracking`/`denyUserTracking`/`getUserTrackingChoice` signatures). Fixed: Usercentrics (live V3 `UC_UI.getServicesBaseInfo()` returns a Promise, so the old `.filter` call threw; now resolved first), Ketch (builder now uses `ketch('on','consent')` with `semaphore` fallback, matching the note), TrustArc (stale Webflow-example wording). Not re-read this pass (403 or login-gated): TrustArc help article, Webflow help pages for Consent Pro and DataGrail, Ketch docs (confirmed only via the `ketch-tag` npm page). Added Relyance (observed on live sites, unverified, no vendor docs). `VERIFIED_ON` → October 2026.
 - **2026-08-14** — Full pass, all CMPs. No drift: OneTrust, Cookiebot, Osano, Didomi, DataGrail, TrustArc, HubSpot. Fixed: Ketch (`ketch()` primary), Usercentrics (`__ucCmp` detection), CookieYes (wording), Consent Pro (rename, geolocation), Osano (doc URL), OneTrust (detect wording). Added Enzuzo (live-verified). `VERIFIED_ON` → August 2026.
 - **2026-07-07** — Added HubSpot (verified against current docs on add). Added the wait-for-`wf` readiness fix to the generated bridge.
 

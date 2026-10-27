@@ -23,7 +23,9 @@ const CATEGORY_LABEL = {
   functional: "Functional / Preferences",
 };
 
-const VERIFIED_ON = "August 2026";
+const VERIFIED_ON = "October 2026";
+// Injected from package.json at build time (build.mjs); "dev" if run unbuilt.
+const APP_VERSION = typeof __APP_VERSION__ !== "undefined" ? __APP_VERSION__ : "dev";
 // Paste a Loom or YouTube EMBED url (e.g. https://www.loom.com/embed/ID) to turn on the in-app tour. Empty hides it.
 const TUTORIAL_URL = "";
 // Licensing for the code this tool emits and ships. Holder standardized to Webflow, Inc.
@@ -57,7 +59,7 @@ const CMPS = {
     detect: "window.OneTrust is present (window.Optanon is the legacy alias); OptanonWrapper() is defined by the implementation.",
     cat: { marketing: "C0004", analytics: "C0002", functional: "C0003" },
     catNote:
-      "Webflow's recommended pattern uses OneTrust.OnConsentChanged and reads OnetrustActiveGroups. Group IDs (commonly C0004 Targeting, C0002 Performance) are configured per tenant – confirm the mapping in the OneTrust admin.",
+      "Registers OneTrust.OnConsentChanged (documented by OneTrust, not deprecated) and reads window.OnetrustActiveGroups, the active-groups variable OneTrust's own examples use. Webflow's example reads the groups from the OptanonConsent cookie instead and is marked unsupported. Group IDs (commonly C0004 Targeting, C0002 Performance) are configured per tenant – confirm the mapping in the OneTrust admin.",
     knownIssue: {
       text:
         "Because OneTrust resolves consent asynchronously, Optimize can initialize before that resolution completes, so the first pageview may be counted or lost before the visitor's choice is known. The snippet denies by default and only allows once the mapped group is active, reacting through OneTrust.OnConsentChanged – verify this ordering with Verify mode rather than assuming it.",
@@ -79,7 +81,7 @@ const CMPS = {
     detect: "window.truste is present (TrustArc Consent Manager).",
     cat: { marketing: "Advertising", analytics: "Functional", functional: "Functional" },
     catNote:
-      "TrustArc emits no per-category JS event. This reads its PrivacyManagerAPI consent decision (the cmapi_cookie_privacy cookie) and checks the mapped category, rather than the trustarc.message example in Webflow's docs, which does not fire at runtime. The Auto Blocker reclassification below has to happen first, or nothing fires.",
+      "TrustArc emits no per-category JS event. This reads its PrivacyManagerAPI consent decision (the cmapi_cookie_privacy cookie) and checks the mapped category, rather than the trustarc.message example from earlier Webflow docs, which does not fire at runtime (Webflow's current example reads the truste.cookie.notice_gdpr_prefs localStorage key once at load, with no change listener, and is marked unsupported). The Auto Blocker reclassification below has to happen first, or nothing fires.",
     knownIssue: {
       text:
         "TrustArc's Auto Blocker classifies and blocks scripts before any consent logic runs, and can block the Optimize script (intellimizeditor.com/common.js) with no obvious error if it does. Reclassifying Optimize from Functional to Required in TrustArc prevents this – confirm the script actually loads before assuming the bridge below is the problem.",
@@ -129,15 +131,26 @@ const CMPS = {
         "Enzuzo exposes consent as a Google Consent Mode object (window.enzuzoGtmConsentObj) and fires an enzuzo_consent_update dataLayer event on change; there is no documented DOM event or JS callback, so hand-rolled versions often resort to a MutationObserver or polling. The generated bridge instead reads the object on load with a bounded wait and hooks the dataLayer event, so it does not poll forever. Because the object name is observed rather than documented, it is read defensively and tolerates missing keys – confirm on the live page with Verify mode.",
     },
   },
+  relyance: {
+    name: "Relyance",
+    detect: "window.relyanceConsent is present (Relyance consent agent).",
+    cat: { marketing: "YOUR_PROCESSING_ACTIVITY_ID", analytics: "YOUR_PROCESSING_ACTIVITY_ID", functional: "YOUR_PROCESSING_ACTIVITY_ID" },
+    catNote:
+      "Relyance records consent per processing activity, not fixed categories, so the category picker does not apply. Set PROCESSING_ACTIVITY_ID in the snippet to the activity that covers Optimize in your Relyance setup; window.relyanceConsent.data lists the IDs with their names. The bridge reads window.relyanceConsent.getConsentStatus(id) and re-reads it on a short poll. Relyance's JavaScript API is not publicly documented, so confirm the ID and behavior with Relyance or your Relyance admin.",
+    knownIssue: {
+      text:
+        "A wrong or missing processing-activity ID silently denies (or, in opt-out mode, allows) everything. Relyance banners can be opt-out, where optional activities read true until the visitor rejects, so confirm that matches the posture you want for Optimize. Install the Optimize snippet directly in the page head, not through Google Tag Manager, and let allowUserTracking and denyUserTracking enforce consent. Relyance-specific unblock guidance is not available yet.",
+    },
+  },
   usercentrics: {
     name: "Usercentrics",
     detect: "window.UC_UI is present; the current V3 CMP also registers window.__ucCmp.",
     cat: { marketing: "Webflow Optimize", analytics: "Webflow Optimize", functional: "Webflow Optimize" },
     catNote:
-      "Gates on the Usercentrics data processing service for Optimize, commonly named 'Webflow Optimize' or 'Intellimize'. The bridge reads UC_UI.getServicesBaseInfo(), finds that service, and uses its consent.status, refreshing on the ucEvent (whose name is configured per account in the Usercentrics data-layer settings). Confirm the exact service name in the Usercentrics admin. UC_UI still works in the current V3 CMP; V3 also exposes window.__ucCmp with an async getConsentDetails() as the newer path. This is the Usercentrics app, a different API from the Cookiebot product Usercentrics owns.",
+      "Gates on the Usercentrics data processing service for Optimize, commonly named 'Webflow Optimize' or 'Intellimize'. The bridge reads UC_UI.getServicesBaseInfo(), finds that service, and uses its consent.status, refreshing on the ucEvent (whose name is configured per account in the Usercentrics data-layer settings). Confirm the exact service name in the Usercentrics admin. In the current V3 CMP, UC_UI.getServicesBaseInfo() returns a Promise (older versions returned an array), so the bridge resolves it before filtering. V3 also exposes window.__ucCmp with the same async methods and a UC_CONSENT window event (fires on load and on every change) as the newer path; ucEvent still fires alongside it. This is the Usercentrics app, a different API from the Cookiebot product Usercentrics owns.",
     knownIssue: {
       text:
-        "Usercentrics now owns Cookiebot, and the two products use different APIs: this one emits a ucEvent and exposes UC_UI.getServicesBaseInfo(), while the Cookiebot product uses CookiebotOnAccept events. Confirm which product is actually on the page before wiring either. Gate on the Optimize service's consent.status and re-read it on each ucEvent so returning visitors are handled too.",
+        "Usercentrics now owns Cookiebot, and the two products use different APIs: this one emits a ucEvent and exposes UC_UI.getServicesBaseInfo(), while the Cookiebot product uses CookiebotOnAccept events. Confirm which product is actually on the page before wiring either. Gate on the Optimize service's consent.status and re-read it on each ucEvent so returning visitors are handled too. A bridge that treats UC_UI.getServicesBaseInfo() as a synchronous array throws on the current V3 CMP, where it returns a Promise, so the generated code resolves it first.",
     },
   },
   ketch: {
@@ -198,7 +211,7 @@ const CMPS = {
   },
 };
 
-const CMP_ORDER = ["onetrust", "cookiebot", "usercentrics", "trustarc", "osano", "ketch", "didomi", "cookieyes", "hubspot", "enzuzo", "consentpro", "datagrail", "custom"];
+const CMP_ORDER = ["onetrust", "cookiebot", "usercentrics", "trustarc", "osano", "ketch", "didomi", "cookieyes", "hubspot", "enzuzo", "relyance", "consentpro", "datagrail", "custom"];
 
 /* ------------------------------------------------------------------ */
 /*  Snippet generation                                                 */
@@ -289,7 +302,7 @@ function cmpReaderLines(cmpKey, category, optIn) {
   if (cmpKey === "trustarc") {
     const taCat = category === "marketing" ? "3" : "2";
     return [
-      "  // Webflow's published trustarc.message example does not reflect TrustArc's runtime API; this uses TrustArc's PrivacyManagerAPI.",
+      "  // Webflow's TrustArc example checks localStorage once with no change listener; this uses TrustArc's PrivacyManagerAPI so it also reacts to later changes.",
       `  var TA_CATEGORY = '${taCat}'; // TrustArc category: 1 Required, 2 Functional, 3 Advertising – confirm your Optimize mapping.`,
       "  function readTrustArc() {",
       "    try {",
@@ -325,8 +338,11 @@ function cmpReaderLines(cmpKey, category, optIn) {
       "  function sync() {",
       gpc,
       `    if (!(window.UC_UI && UC_UI.getServicesBaseInfo)) { applyConsent(${defAllow}); return; }`,
-      "    var svc = UC_UI.getServicesBaseInfo().filter(function (s) { return s.name === SERVICE; })[0];",
-      "    applyConsent(!!(svc && svc.consent && svc.consent.status));",
+      "    // The current V3 CMP returns a Promise here, older versions an array; Promise.resolve handles both.",
+      "    Promise.resolve(UC_UI.getServicesBaseInfo()).then(function (list) {",
+      "      var svc = (list || []).filter(function (s) { return s.name === SERVICE; })[0];",
+      "      applyConsent(!!(svc && svc.consent && svc.consent.status));",
+      "    });",
       "  }",
       "  window.addEventListener('ucEvent', function (e) { if (e.detail && e.detail.event === 'consent_status') sync(); });",
       "  if (window.UC_UI && UC_UI.isInitialized && UC_UI.isInitialized()) sync();",
@@ -340,8 +356,12 @@ function cmpReaderLines(cmpKey, category, optIn) {
       `    if (!(consent && consent.purposes)) { applyConsent(${defAllow}); return; }`,
       "    applyConsent(!!consent.purposes[PURPOSE]);",
       "  }",
-      "  window.semaphore = window.semaphore || [];",
-      "  semaphore.push(['on', 'consent', onConsent]);",
+      "  if (typeof window.ketch === 'function') {",
+      "    ketch('on', 'consent', onConsent);",
+      "  } else {",
+      "    window.semaphore = window.semaphore || [];",
+      "    semaphore.push(['on', 'consent', onConsent]);",
+      "  }",
     ];
   }
   if (cmpKey === "didomi") {
@@ -397,6 +417,49 @@ function cmpReaderLines(cmpKey, category, optIn) {
       `    if (Date.now() - t0 < 5000) return setTimeout(initial, 100);`,
       `    applyConsent(${defAllow});`,
       "  })();",
+    ];
+  }
+  if (cmpKey === "relyance") {
+    return [
+      "  // Relyance's JavaScript API is not publicly documented; confirm with Relyance or your Relyance admin.",
+      `  var PROCESSING_ACTIVITY_ID = '${catVal}'; // REQUIRED: the Relyance processing-activity ID that covers Optimize (specific to your Relyance setup)`,
+      "  var GRANTED_VALUES = [true, 'granted', 'true', 'allow', 'opt_in']; // Live sites returned true/false; the string values are a guess",
+      "  var LISTEN_FOR_DATALAYER_EVENT = false; // Optional: also react to the relyance_consent_updated dataLayer event (seen on one tested site, not vendor-documented; absent on relyance.ai)",
+      "  function readConsent() {",
+      "    var rc = window.relyanceConsent;",
+      "    if (!rc) return undefined;",
+      "    if (typeof rc.getConsentStatus === 'function') return rc.getConsentStatus(PROCESSING_ACTIVITY_ID);",
+      "    var d = rc.data || [];",
+      "    for (var i = 0; i < d.length; i++) { if (d[i] && d[i].id === PROCESSING_ACTIVITY_ID) return d[i].consent; }",
+      "    return undefined;",
+      "  }",
+      "  function sync() {",
+      gpc,
+      "    var v = readConsent();",
+      `    if (v === undefined || v === null) { applyConsent(${defAllow}); return; }`,
+      "    var s = typeof v === 'string' ? v.toLowerCase() : v;",
+      "    applyConsent(GRANTED_VALUES.indexOf(s) !== -1);",
+      "  }",
+      "  if (PROCESSING_ACTIVITY_ID === 'YOUR_PROCESSING_ACTIVITY_ID') console.warn('Relyance bridge: set PROCESSING_ACTIVITY_ID before shipping.');",
+      "  // Polling fallback: re-read relyanceConsent and re-apply only when the value changes.",
+      "  var last, t0 = Date.now();",
+      "  setInterval(function () {",
+      "    var v = readConsent();",
+      "    var key = JSON.stringify(v);",
+      "    if (key !== last && (v !== undefined || Date.now() - t0 > 5000)) { last = key; sync(); }",
+      "  }, 500);",
+      "  if (LISTEN_FOR_DATALAYER_EVENT) {",
+      "    window.dataLayer = window.dataLayer || [];",
+      "    var _push = window.dataLayer.push;",
+      "    window.dataLayer.push = function () {",
+      "      var r = _push.apply(this, arguments);",
+      "      for (var i = 0; i < arguments.length; i++) {",
+      "        if (arguments[i] && arguments[i].event === 'relyance_consent_updated') sync();",
+      "      }",
+      "      return r;",
+      "    };",
+      "  }",
+      "  sync();",
     ];
   }
   return [];
@@ -619,6 +682,7 @@ const BOOKMARKLET_SOURCE = `(function () {
     'HubSpot': 'HubSpot can fire the consent listener before the Webflow wf object exists (common with implied/auto consent), so a bridge that checks for wf once would drop the first decision. The generated bridge waits for wf instead. This panel loads after the page, so reload in a private window to exercise that first-pageview path. HubSpot categories are fixed (analytics, advertisement, functionality) – accept only the mapped one and confirm an allow.',
     'DataGrail': 'DataGrail manages Optimize tracking directly through GTM, so there is no manual bridge. Confirm the Webflow tracking row flips when you accept or decline, and that no hand-rolled bridge is also present.',
     'Consent Pro': 'Consent Pro manages Optimize tracking directly, so there is no manual bridge. Confirm the Webflow tracking row flips when you accept or decline, and that no hand-rolled bridge is also present.',
+    'Relyance': 'Consent is per processing activity, so confirm the processing-activity ID in the snippet is the one that covers Optimize, and that relyanceConsent.getConsentStatus(id) returns a value the bridge treats as granted. Accept and then withdraw consent for that activity and watch for an allow, then a deny. Confirm all of this with Relyance or the Relyance admin.',
     'Enzuzo': 'Enzuzo exposes consent as a Google Consent Mode object (window.enzuzoGtmConsentObj) and fires an enzuzo_consent_update dataLayer event on change. The object name is observed, not documented, so confirm the mapped key actually flips: accept only the mapped category and watch for an allow. This panel loads after the page; reload in a private window to check the first-pageview path.'
   };
   function detectAll() {
@@ -633,8 +697,9 @@ const BOOKMARKLET_SOURCE = `(function () {
     else if (window.getCkyConsent || document.cookie.indexOf('cookieyes-consent') !== -1) cmp = 'CookieYes';
     else if (document.querySelector('script[finsweet="consentpro"], [fs-cc]') || document.cookie.indexOf('fs-cc') !== -1) cmp = 'Consent Pro';
     else if (window.enzuzoGtmConsentObj) cmp = 'Enzuzo';
+    else if (window.relyanceConsent || window.Relyance || document.getElementById('relyance-consent-script') || document.querySelector('#relyance-banner-container, #relyance-preference-center-container, #relyance-opt-out-widget-container')) cmp = 'Relyance';
     else if (window._hsp) cmp = 'HubSpot'; // weak signal (HubSpot is often present just as CRM/tracking) – keep last
-    var by = [['onetrust', 'OneTrust'], ['cookielaw', 'OneTrust'], ['cookiebot', 'Cookiebot'], ['usercentrics', 'Usercentrics'], ['trustarc', 'TrustArc'], ['osano', 'Osano'], ['ketch', 'Ketch'], ['didomi', 'Didomi'], ['cookieyes', 'CookieYes'], ['clarip', 'Clarip'], ['cookieinformation', 'Cookie Information'], ['cookiecontrol', 'Civic Cookie Control'], ['termly', 'Termly'], ['iubenda', 'iubenda'], ['quantcast', 'Quantcast'], ['sourcepoint', 'Sourcepoint'], ['cassie', 'Cassie'], ['datagrail', 'DataGrail'], ['consentpro', 'Consent Pro'], ['finsweet', 'Consent Pro'], ['fs-cc', 'Consent Pro'], ['enzuzo', 'Enzuzo'], ['hs-banner', 'HubSpot'], ['hs-scripts', 'HubSpot']];
+    var by = [['onetrust', 'OneTrust'], ['cookielaw', 'OneTrust'], ['cookiebot', 'Cookiebot'], ['usercentrics', 'Usercentrics'], ['trustarc', 'TrustArc'], ['osano', 'Osano'], ['ketch', 'Ketch'], ['didomi', 'Didomi'], ['cookieyes', 'CookieYes'], ['clarip', 'Clarip'], ['cookieinformation', 'Cookie Information'], ['cookiecontrol', 'Civic Cookie Control'], ['termly', 'Termly'], ['iubenda', 'iubenda'], ['quantcast', 'Quantcast'], ['sourcepoint', 'Sourcepoint'], ['cassie', 'Cassie'], ['datagrail', 'DataGrail'], ['consentpro', 'Consent Pro'], ['finsweet', 'Consent Pro'], ['fs-cc', 'Consent Pro'], ['enzuzo', 'Enzuzo'], ['relyance', 'Relyance'], ['hs-banner', 'HubSpot'], ['hs-scripts', 'HubSpot']];
     var known = [];
     for (var n = 0; n < by.length; n++) { if (known.indexOf(by[n][1]) === -1) known.push(by[n][1]); }
     if (cmp === 'None recognized') {
@@ -969,7 +1034,7 @@ function DownloadButton({ text, filename, label }) {
   );
 }
 
-function OptionList({ options, value, onChange, noteFor }) {
+function OptionList({ options, value, onChange, noteFor, descOnSelected }) {
   return (
     <div className="optionlist">
       {options.map(function (o) {
@@ -985,7 +1050,7 @@ function OptionList({ options, value, onChange, noteFor }) {
                 <span className="radio" aria-hidden="true" />
                 <span className="option-title">{o.title}</span>
               </span>
-              {o.desc ? <span className="option-desc">{o.desc}</span> : null}
+              {o.desc && (!descOnSelected || selected) ? <span className="option-desc">{o.desc}</span> : null}
             </button>
             {note ? <p className="option-note">{note}</p> : null}
           </React.Fragment>
@@ -1216,7 +1281,8 @@ function buildRecord(cmpKey, posture, hosting, category, accountId, snippet, sum
   lines.push(cmp.knownIssue.text);
   lines.push("");
   lines.push("## Implementation reference");
-  lines.push("Patterns verified against vendor documentation (" + VERIFIED_ON + "):");
+  if (cmpKey === "relyance") lines.push("The Relyance pattern is based on observed behavior; its JavaScript API is not publicly documented. Confirm it with Relyance or the Relyance admin.");
+  else lines.push("Patterns verified against vendor documentation (" + VERIFIED_ON + "):");
   if (doc) lines.push("- " + doc.label + ": " + doc.url);
   lines.push("- Webflow Browser API, consent management: " + WF_CONSENT_DOC);
   lines.push("");
@@ -1391,7 +1457,9 @@ function Output({ cmpKey, posture, hosting, category, accountId, reload, activat
 
       <section className="block">
         <h4>Implementation reference</h4>
-        <p className="muted small">Verified against the sources below ({VERIFIED_ON}). Event names and category IDs vary by consent platform version and configuration – confirm in the live setup.</p>
+        <p className="muted small">{CMP_DOCS[cmpKey]
+          ? "Verified against the sources below (" + VERIFIED_ON + "). Event names and category IDs vary by consent platform version and configuration – confirm in the live setup."
+          : "No public vendor documentation is available for this platform, so this is based on observed behavior (" + VERIFIED_ON + "). Confirm it with the vendor and in the live setup."}</p>
         <div className="doclist">
           {CMP_DOCS[cmpKey] ? (
             <a className="doclink" href={CMP_DOCS[cmpKey].url} target="_blank" rel="noopener noreferrer">
@@ -1490,7 +1558,7 @@ function CmpPicker({ value, onChange }) {
         ) : null}
       </div>
       {filtered.length ? (
-        <OptionList options={filtered} value={value} onChange={onChange} />
+        <OptionList options={filtered} value={value} onChange={onChange} descOnSelected />
       ) : (
         <p className="cmp-search-empty muted small">No platform matches that search. The Other / custom option covers any consent platform not listed.</p>
       )}
@@ -1910,7 +1978,7 @@ export default function App() {
 
         <footer className="foot">
           <span>This configurator generates best-practice integration code, not legal advice. Confirm your consent posture with your privacy team.</span>
-          <span style={{ display: "block", marginTop: "8px", opacity: 0.7 }}>Generated code is MIT-licensed. <a href={LICENSE.repo} target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>View source on GitHub</a></span>
+          <span style={{ display: "block", marginTop: "8px", opacity: 0.7 }}>Generated code is MIT-licensed · <a href={LICENSE.repo} target="_blank" rel="noopener noreferrer" style={{ color: "inherit" }}>View source on GitHub</a> · Version {APP_VERSION} · patterns verified {VERIFIED_ON}</span>
         </footer>
       </main>
       {showTour && TUTORIAL_URL ? (

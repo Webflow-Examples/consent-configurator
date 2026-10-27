@@ -1,6 +1,8 @@
 import * as esbuild from "esbuild";
 import { readFileSync, writeFileSync, mkdirSync } from "node:fs";
 
+const { version } = JSON.parse(readFileSync(new URL("./package.json", import.meta.url), "utf8"));
+
 const banner =
   "/*! Webflow consent configurator | (c) 2026 Webflow, Inc. | MIT | https://github.com/Webflow-Examples/consent-configurator */";
 
@@ -9,7 +11,7 @@ const result = await esbuild.build({
   bundle: true,
   minify: true,
   jsx: "automatic",
-  define: { "process.env.NODE_ENV": '"production"' },
+  define: { "process.env.NODE_ENV": '"production"', __APP_VERSION__: JSON.stringify(version) },
   alias: { "lucide-react": new URL("./src/lucide-shim.jsx", import.meta.url).pathname },
   banner: { js: banner },
   write: false,

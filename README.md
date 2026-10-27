@@ -2,7 +2,7 @@
 
 Generate and verify a correct, best-practice consent integration between a consent management platform (CMP) and Webflow's first-party tracking, which powers both Optimize and Analyze. One `wf.allowUserTracking()` bridge covers both products, so a site needs only this single setup – there is no separate consent integration for each.
 
-The tool runs entirely in the browser as one self-contained HTML file. It has three modes: a guided walkthrough, an express mode for known setups, and a verify mode that checks a live page with a bookmarklet. It encodes the per-CMP failure modes for the common platforms (OneTrust, Cookiebot, Usercentrics, TrustArc, Osano, Ketch, Didomi, CookieYes, HubSpot, Enzuzo) and the native paths (Consent Pro, DataGrail).
+The tool runs entirely in the browser as one self-contained HTML file. It has three modes: a guided walkthrough, an express mode for known setups, and a verify mode that checks a live page with a bookmarklet. It encodes the per-CMP failure modes for the common platforms (OneTrust, Cookiebot, Usercentrics, TrustArc, Osano, Ketch, Didomi, CookieYes, HubSpot, Enzuzo, Relyance) and the native paths (Consent Pro, DataGrail).
 
 ## Live tool
 
@@ -40,6 +40,13 @@ The per-CMP patterns reflect vendor behavior verified as of August 2026. Event n
 The per-CMP knowledge (reference docs, category mappings, known failure modes, and the code generated per platform) needs periodic re-verification against current vendor APIs. See [`MAINTENANCE.md`](MAINTENANCE.md) for the model and the manual steps, or run the `refresh-cmp-docs` Claude Code skill (`.claude/skills/refresh-cmp-docs/`) to walk through a refresh end to end, including a live Verify-mode check per platform.
 
 ## Changelog
+
+### 1.3.0 — 2026-10-27
+
+- The footer now shows the tool's version and the date its patterns were last verified, so the live copy is easy to identify. The CMP picker shows a platform's description only when it is selected.
+- Fixed the **Usercentrics** bridge: on the current V3 CMP `UC_UI.getServicesBaseInfo()` returns a Promise, so the generated `.filter` call threw. It now resolves the value first and still works with older array-returning versions.
+- **Ketch** bridge now registers with `ketch('on', 'consent')` and falls back to the `semaphore` queue, matching the note on the page. TrustArc and OneTrust notes corrected to match Webflow's current examples.
+- Added **Relyance** as a supported CMP. Relyance's JavaScript API is not publicly documented, so the pattern is based on behavior observed on live Relyance sites (including relyance.ai). The bridge gates on a customer-specific processing-activity ID (`PROCESSING_ACTIVITY_ID`), reads `window.relyanceConsent`, and re-reads it by polling; hooking the `relyance_consent_updated` dataLayer event is optional and off by default (`RELYANCE_CONSENT_UPDATE` did not fire on `window` or `document` in testing). Confirm the details with Relyance or the customer's Relyance admin before relying on it.
 
 ### 1.2.0 — 2026-08-14
 
